@@ -6,6 +6,7 @@ from guarddoc.core.engine import Engine
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import ScanResult
 from guarddoc.scanners.mime import MimeScanner
+from guarddoc.scanners.office import OfficeScanner
 from guarddoc.scanners.pdf import PdfScanner
 from guarddoc.scanners.text import TextScanner
 from guarddoc.scanners.yara_scanner import YaraScanner
@@ -17,6 +18,7 @@ def build_engine(rules_dir: Path | str = "rules") -> Engine:
     engine.register_scanner(MimeScanner())
     engine.register_scanner(PdfScanner())
     engine.register_scanner(TextScanner())
+    engine.register_scanner(OfficeScanner())
     engine.register_scanner(YaraScanner(rules_dir=rules_dir))
     return engine
 

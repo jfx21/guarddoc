@@ -81,6 +81,23 @@ MESSAGES: dict[str, dict[Language, str]] = {
         Language.PL: "Zatrzymywanie daemona GuardDoc...",
         Language.EN: "Stopping GuardDoc daemon...",
     },
+    # Office Scanner
+    "OFFICE-VBA-MACRO-TITLE": {
+        Language.PL: "Wykryto osadzone makra VBA w dokumencie Office",
+        Language.EN: "Embedded VBA macros detected in Office document",
+    },
+    "OFFICE-VBA-MACRO-DESC": {
+        Language.PL: "Dokument zawiera kod skryptowy VBA, który może automatycznie wykonać polecenia w systemie.",
+        Language.EN: "Document contains VBA script code that may automatically execute commands on your system.",
+    },
+    "OFFICE-OLE-OBJECT-TITLE": {
+        Language.PL: "Wykryto ukryty obiekt OLE / plik wykonywalny w dokumencie",
+        Language.EN: "Hidden OLE object / executable detected in document",
+    },
+    "OFFICE-OLE-OBJECT-DESC": {
+        Language.PL: "Dokument zawiera osadzony plik binarny lub zewnętrzny obiekt OLE.",
+        Language.EN: "Document contains an embedded binary file or external OLE object.",
+    },
 }
 
 
