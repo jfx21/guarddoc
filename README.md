@@ -1,4 +1,8 @@
 # GuardDoc
+[![CI](https://github.com/jfx21/guarddoc/actions/workflows/ci.yml/badge.svg)](https://github.com/jfx21/guarddoc/actions/workflows/ci.yml)
+[![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 [ English ] | [ [Polska wersja poniżej](#guarddoc---polska-wersja) ]
 
