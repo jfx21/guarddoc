@@ -48,10 +48,10 @@ GuardDoc uses a `src-layout` architecture with a separated orchestrator engine, 
                            │
     ┌──────────────┬───────┴───────┬──────────────┬──────────────┐
     ▼              ▼               ▼              ▼              ▼
-┌──────────┐ ┌───────────┐   ┌───────────┐  ┌───────────┐  ┌───────────┐
-│MimeScanner││PdfScanner │   │OfficeScn  │  │TextScanner│  │YaraScanner│
-└──────────┘ └───────────┘   └───────────┘  └───────────┘  └───────────┘
-(MagicBytes) (ISO PDF Spec)  (VBA / OLE)    (Unicode/RTLO) (YARA Rules)
+┌──────────┐ ┌───────────┐   ┌──────────────┐┌───────────┐  ┌───────────┐
+│MimeScanner││PdfScanner │   │OfficeScanner ││TextScanner│  │YaraScanner│
+└──────────┘ └───────────┘   └──────────────┘└───────────┘  └───────────┘
+(MagicBytes) (ISO PDF Spec)   (VBA / OLE)    (Unicode/RTLO) (YARA Rules)
 ```
 
 The engine follows the **error isolation principle**: a failure or corrupted file header in one of the external parsers does not halt the application and is recorded as a potential analysis evasion attempt (*Malformed Structure*).
@@ -76,7 +76,7 @@ sudo apt install libmagic1
 
 ```bash
 # Clone the repository
-git clone [https://github.com/jfx21/guarddoc.git](https://github.com/jfx21/guarddoc.git)
+git clone https://github.com/jfx21/guarddoc.git
 cd guarddoc
 
 # Create environment and install the package in editable mode
@@ -178,10 +178,10 @@ GuardDoc wykorzystuje architekturę typu `src-layout` z odseparowanym silnikiem 
                            │
     ┌──────────────┬───────┴───────┬──────────────┬──────────────┐
     ▼              ▼               ▼              ▼              ▼
-┌──────────┐ ┌───────────┐   ┌───────────┐  ┌───────────┐  ┌───────────┐
-│MimeScanner││PdfScanner │   │OfficeScn  │  │TextScanner│  │YaraScanner│
-└──────────┘ └───────────┘   └───────────┘  └───────────┘  └───────────┘
-(MagicBytes) (ISO PDF Spec)  (VBA / OLE)    (Unicode/RTLO) (YARA Rules)
+┌──────────┐ ┌───────────┐   ┌──────────────┐┌───────────┐  ┌───────────┐
+│MimeScanner││PdfScanner │   │OfficeScanner ││TextScanner│  │YaraScanner│
+└──────────┘ └───────────┘   └──────────────┘└───────────┘  └───────────┘
+(MagicBytes) (ISO PDF Spec)   (VBA / OLE)    (Unicode/RTLO) (YARA Rules)
 ```
 
 Silnik kieruje się zasadą **izolacji błędów**: awaria lub uszkodzenie nagłówka pliku w jednym z zewnętrznych parserów nie przerywa działania aplikacji i jest rejestrowana jako potencjalna próba ominięcia analizy (*Malformed Structure*).
@@ -206,7 +206,7 @@ sudo apt install libmagic1
 
 ```bash
 # Sklonuj repozytorium
-git clone [https://github.com/jfx21/guarddoc.git](https://github.com/jfx21/guarddoc.git)
+git clone https://github.com/jfx21/guarddoc.git
 cd guarddoc
 
 # Utwórz środowisko i zainstaluj pakiet w trybie deweloperskim
