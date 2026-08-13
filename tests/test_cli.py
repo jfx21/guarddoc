@@ -19,13 +19,13 @@ def test_cli_scan_recursive_directory(tmp_path: Path) -> None:
     file2 = sub_dir / "bad.txt"
     file2.write_text("Dokument \u202etxt.exe", encoding="utf-8")
 
-    # Skanowanie bez -r nie powinno wykryć pliku z podkatalogu
-    result = runner.invoke(app, [str(tmp_path)])
+    # Skanowanie bez -r
+    result = runner.invoke(app, ["scan", str(tmp_path)])
     assert result.exit_code == 0, f"Error output: {result.stdout}"
     assert "bad.txt" not in result.stdout
 
-    # Skanowanie z -r powinno wykryć plik w podkatalogu
-    result_rec = runner.invoke(app, [str(tmp_path), "-r"])
+    # Skanowanie z -r
+    result_rec = runner.invoke(app, ["scan", str(tmp_path), "-r"])
     assert result_rec.exit_code == 0, f"Error output: {result_rec.stdout}"
     assert "bad.txt" in result_rec.stdout
 
@@ -36,19 +36,15 @@ def test_cli_json_export(tmp_path: Path) -> None:
 
     output_json = tmp_path / "report.json"
 
-    result = runner.invoke(app, [str(test_file), "--json", "-o", str(output_json)])
+    result = runner.invoke(app, ["scan", str(test_file), "--json", "-o", str(output_json)])
     assert result.exit_code == 0, f"Error output: {result.stdout}"
 
-    # Sprawdzenie czy plik JSON został poprawnie zapisany
     assert output_json.exists()
     data = json.loads(output_json.read_text(encoding="utf-8"))
 
     assert len(data) == 1
     assert data[0]["is_safe"] is False
 
-    # Pobieramy listę wszystkich rule_id wykrytych przez silnik
     detected_rule_ids = [threat["rule_id"] for threat in data[0]["threats"]]
-
-    # Powinny zostać wykryte zarówno oszustwo MIME jak i reguła TXT-SHEBANG
     assert "MIME-SPOOF-CRITICAL" in detected_rule_ids
     assert "TXT-SHEBANG" in detected_rule_ids

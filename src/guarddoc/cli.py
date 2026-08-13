@@ -2,18 +2,14 @@ import json
 from pathlib import Path
 from typing import Annotated
 
-import magic
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from guarddoc.core.engine import Engine
 from guarddoc.core.models import ScanResult, Severity
-from guarddoc.scanners.mime import MimeScanner
-from guarddoc.scanners.pdf import PdfScanner
-from guarddoc.scanners.text import TextScanner
-from guarddoc.scanners.yara_scanner import YaraScanner
+from guarddoc.core.services import build_engine, scan_single_file
+from guarddoc.watcher import start_watcher
 
 app = typer.Typer(
     name="guarddoc",
@@ -21,26 +17,6 @@ app = typer.Typer(
     add_completion=False,
 )
 console = Console()
-
-
-def build_engine() -> Engine:
-    """Tworzy i konfiguruje silnik ze wszystkimi skanerami."""
-    engine = Engine()
-    engine.register_scanner(MimeScanner())
-    engine.register_scanner(PdfScanner())
-    engine.register_scanner(TextScanner())
-    engine.register_scanner(YaraScanner(rules_dir="rules"))
-    return engine
-
-
-def scan_single_file(engine: Engine, file_path: Path) -> ScanResult:
-    """Skanuje pojedynczy plik."""
-    try:
-        detected_mime = magic.from_file(str(file_path), mime=True)
-    except Exception:  # noqa: BLE001 - domyślny fallback przy błędzie libmagic
-        detected_mime = "unknown"
-
-    return engine.scan_file(file_path, mime_type=detected_mime)
 
 
 @app.command()
@@ -189,6 +165,30 @@ def _render_batch_results(results: list[ScanResult], target: Path) -> None:
         console.print(
             f"[bold green]✓ Przeanalizowano {total} plików. Brak wykrytych zagrożeń.[/bold green]"
         )
+
+
+@app.command()
+def watch(
+    directory: Annotated[
+        Path | None,
+        typer.Argument(help="Katalog do obserwacji w tle (domyślnie ~/Downloads)"),
+    ] = None,
+    quarantine: Annotated[
+        bool,
+        typer.Option(
+            "--quarantine/--no-quarantine",
+            help="Automatycznie nakładaj kwarantannę (chmod 000) na wykryte groźne pliki",
+        ),
+    ] = True,
+) -> None:
+    """Uruchamia w tle obserwatora plików (Daemon) dla wybranego katalogu."""
+    target_dir = directory or (Path.home() / "Downloads")
+
+    if not target_dir.exists() or not target_dir.is_dir():
+        console.print(f"[bold red]Błąd:[/bold red] Katalog '{target_dir}' nie istnieje.")
+        raise typer.Exit(code=1)
+
+    start_watcher(target_dir, quarantine=quarantine)
 
 
 if __name__ == "__main__":
