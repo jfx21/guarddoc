@@ -39,3 +39,11 @@ ENV/
 # Malware testing safety - nigdy nie commitujemy prawdziwych infekcji
 tests/samples/malware_*
 !tests/samples/.gitkeep
+
+# System
+.DS_Store
+Thumbs.db
+
+#logs, raports
+*.log
+report.json
