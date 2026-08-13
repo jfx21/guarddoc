@@ -15,13 +15,14 @@ The tool instantly inspects downloaded documents (`.pdf`, `.txt`, `.csv`, `.json
 * **Text and Unicode Analysis:** Detects **Right-To-Left Override (`U+202E`)** attacks, invisible Unicode characters (Zero-Width Spaces), Shebang headers (`#!/bin/bash`), and shell commands.
 * **YARA Integration:** Automatically compiles and applies YARA rules from the `rules/` directory to detect complex malware patterns.
 * **Real-Time Directory Watcher (Daemon):** Continuous background monitoring of incoming files (e.g., `~/Downloads`) with automatic quarantine (`chmod 000`) and native desktop notifications (macOS / Linux).
+* **Multi-language Support (i18n):** Full support for English and Polish languages (`-l / --lang [pl|en]`) in reports, terminal UI, and desktop notifications.
 * **JSON Formatting & Recursion:** Allows scanning entire directory trees and generating structured JSON reports for integration with SIEM/SOAR systems.
 
 ---
 
 ## System Architecture
 
-GuardDoc uses a `src-layout` architecture with a separated orchestrator engine and independent scanner modules:
+GuardDoc uses a `src-layout` architecture with a separated orchestrator engine, i18n localization core, and independent scanner modules:
 
 ```text
                ┌────────────────────────┐
@@ -37,7 +38,7 @@ GuardDoc uses a `src-layout` architecture with a separated orchestrator engine a
              └─────────────┬─────────────┘
                            ▼
                ┌────────────────────────┐
-               │  Engine & Services     │
+               │  Engine & i18n Core    │
                └───────────┬────────────┘
                            │
        ┌───────────────────┼───────────────────┬───────────────────┐
@@ -81,10 +82,14 @@ uv pip install -e ".[dev]"
 
 ## Usage
 
-### 1. Single File Scanning
+### 1. Single File Scanning (English / Polish)
 
 ```bash
+# Default (Polish)
 guarddoc scan ~/Downloads/invoice_2026.pdf
+
+# English output
+guarddoc scan ~/Downloads/invoice_2026.pdf --lang en
 ```
 
 ### 2. Recursive Scanning of the Entire Downloads Directory
@@ -93,23 +98,23 @@ guarddoc scan ~/Downloads/invoice_2026.pdf
 guarddoc scan ~/Downloads --recursive
 ```
 
-### 3. Generating a JSON Report
+### 3. Generating a JSON Report (English for SIEM/SOAR)
 
 ```bash
-guarddoc scan ~/Downloads --recursive --json --output report.json
+guarddoc scan ~/Downloads --recursive --json --lang en --output report.json
 ```
 
 ### 4. Background Real-Time Directory Watcher
 
-Monitor a directory (defaults to `~/Downloads`) in real time with automatic quarantine (`chmod 000`) on detected threats:
+Monitor a directory (defaults to `~/Downloads`) in real time with automatic quarantine (`chmod 000`) on detected threats and localized notifications:
 
 ```bash
-guarddoc watch ~/Downloads --quarantine
+guarddoc watch ~/Downloads --quarantine --lang en
 ```
 
 ---
 
-## JSON Output Example
+## JSON Output Example (English)
 
 ```json
 [
@@ -124,7 +129,7 @@ guarddoc watch ~/Downloads --quarantine
       {
         "rule_id": "MIME-SPOOF-CRITICAL",
         "title": "Executable file masquerading as a document detected!",
-        "description": "The file has a '.pdf' extension, but its internal structure is an executable file/script (text/x-shellscript).",
+        "description": "The file has extension '.pdf', but its internal structure is an executable/script (text/x-shellscript).",
         "severity": "CRITICAL",
         "context": {
           "extension": ".pdf",
@@ -169,13 +174,14 @@ Narzędzie służy do natychmiastowego prześwietlania pobranych dokumentów (`.
 * **Analiza Tekstowa i Unicode:** Wykrywa ataki typu **Right-To-Left Override (`U+202E`)**, niewidoczne znaki Unicode (Zero-Width Spaces), nagłówki Shebang (`#!/bin/bash`) oraz komendy powłoki.
 * **Integracja z YARA:** Automatycznie kompiluje i stosuje reguły YARA z katalogu `rules/` do detekcji złożonych wzorców malware'u.
 * **Ochrona w Czasie Rzeczywistym (Watcher Daemon):** Ciągła obserwacja wybranego folderu (np. `~/Downloads`) w tle z opcją automatycznej kwarantanny (`chmod 000`) i natywnymi powiadomieniami systemowymi (macOS / Linux).
+* **Obsługa Wielojęzyczności (i18n):** Pełne wsparcie dla języka polskiego i angielskiego (`-l / --lang [pl|en]`) w raportach, interfejsie konsolowym oraz powiadomieniach.
 * **Formatowanie JSON & Rekurencyjność:** Pozwala skanować całe drzewa katalogów oraz generować ustrukturyzowane raporty JSON pod kątem integracji z systemami SIEM/SOAR.
 
 ---
 
 ## Architektura Systemu
 
-GuardDoc wykorzystuje architekturę typu `src-layout` z odseparowanym silnikiem orkiestrującym oraz niezależnymi modułami skanującymi:
+GuardDoc wykorzystuje architekturę typu `src-layout` z odseparowanym silnikiem orkiestrującym, modułem i18n oraz niezależnymi modułami skanującymi:
 
 ```text
                ┌────────────────────────┐
@@ -191,7 +197,7 @@ GuardDoc wykorzystuje architekturę typu `src-layout` z odseparowanym silnikiem 
              └─────────────┬─────────────┘
                            ▼
                ┌────────────────────────┐
-               │  Engine & Services     │
+               │  Engine & i18n Core    │
                └───────────┬────────────┘
                            │
        ┌───────────────────┼───────────────────┬───────────────────┐
@@ -238,7 +244,11 @@ uv pip install -e ".[dev]"
 ### 1. Skanowanie pojedynczego pliku
 
 ```bash
+# Domyślnie język polski
 guarddoc scan ~/Downloads/faktura_2026.pdf
+
+# Raport w języku angielskim
+guarddoc scan ~/Downloads/faktura_2026.pdf --lang en
 ```
 
 ### 2. Rekurencyjne skanowanie całego folderu Pobrane
@@ -250,15 +260,15 @@ guarddoc scan ~/Downloads --recursive
 ### 3. Generowanie raportu w formacie JSON
 
 ```bash
-guarddoc scan ~/Downloads --recursive --json --output raport.json
+guarddoc scan ~/Downloads --recursive --json --lang pl --output raport.json
 ```
 
 ### 4. Obserwacja katalogu w tle (Ochrona w czasie rzeczywistym)
 
-Uruchomienie obserwatora folderu (domyślnie `~/Downloads`) w tle z automatyczną kwarantanną (`chmod 000`) w przypadku wykrycia zagrożeń:
+Uruchomienie obserwatora folderu (domyślnie `~/Downloads`) w tle z automatyczną kwarantanną (`chmod 000`) w przypadku wykrycia zagrożeń oraz wybranym językiem alertów:
 
 ```bash
-guarddoc watch ~/Downloads --quarantine
+guarddoc watch ~/Downloads --quarantine --lang pl
 ```
 
 ---
