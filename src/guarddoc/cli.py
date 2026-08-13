@@ -10,6 +10,7 @@ from rich.table import Table
 from guarddoc.core.engine import Engine
 from guarddoc.core.models import Severity
 from guarddoc.scanners.mime import MimeScanner
+from guarddoc.scanners.pdf import PdfScanner
 
 app = typer.Typer(
     name="guarddoc",
@@ -28,9 +29,10 @@ def scan(
         console.print(f"[bold red]Błąd:[/bold red] Plik '{target}' nie istnieje.")
         raise typer.Exit(code=1)
 
-    # Inicjalizacja silnika i rejestracja MimeScanner
+    # Inicjalizacja silnika i rejestracja skanerów
     engine = Engine()
     engine.register_scanner(MimeScanner())
+    engine.register_scanner(PdfScanner())
 
     # Wstępne wyznaczenie MIME type
     detected_mime = magic.from_file(str(target), mime=True)
@@ -53,7 +55,7 @@ def scan(
     if result.is_safe:
         console.print(
             Panel(
-                "[bold green]✓ Brak wykrytych prób oszustwa MIME / Spoofingu rozszerzeń.[/bold green]",
+                "[bold green]✓ Brak wykrytych zagrożeń ani podejrzanych obiektów.[/bold green]",
                 title="Status Bezpieczeństwa",
                 border_style="green",
             )
@@ -70,7 +72,7 @@ def scan(
         console.print(
             Panel(
                 panel_text,
-                title=f"[bold red]⚠️ DETEKCJA ZAGROŻEŃ (Max Severity: {result.max_severity})[/bold red]",
+                title=f"[bold red] DETEKCJA ZAGROŻEŃ (Max Severity: {result.max_severity})[/bold red]",
                 border_style="red",
             )
         )
