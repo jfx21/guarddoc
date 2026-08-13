@@ -11,23 +11,24 @@ requires-python = ">=3.11, <3.15"
 authors = [
     { name = "Jakub Adamczyk", email = "jfx2121@duck.com" }
 ]
+# Tylko produkcyjne zależności aplikacji
 dependencies = [
     "typer[all]>=0.9.0",
     "rich>=13.0.0",
     "python-magic>=0.4.27",
     "pypdf>=4.0.0",
     "pydantic>=2.0.0",
-    "pytest>=9.1.1",
-    "pre-commit>=4.6.2",
+    "yara-python>=4.3.0",
 ]
 
+# Narzędzia deweloperskie i testowe
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
     "mypy>=1.8.0",
     "ruff>=0.2.0",
     "bandit>=1.7.0",
-    "pre-commit>=3.6.0"
+    "pre-commit>=3.6.0",
 ]
 
 [project.scripts]

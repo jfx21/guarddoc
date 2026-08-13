@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
+
 import magic
 import typer
 from rich.console import Console
@@ -12,6 +13,7 @@ from guarddoc.core.models import ScanResult, Severity
 from guarddoc.scanners.mime import MimeScanner
 from guarddoc.scanners.pdf import PdfScanner
 from guarddoc.scanners.text import TextScanner
+from guarddoc.scanners.yara_scanner import YaraScanner
 
 app = typer.Typer(
     name="guarddoc",
@@ -27,6 +29,7 @@ def build_engine() -> Engine:
     engine.register_scanner(MimeScanner())
     engine.register_scanner(PdfScanner())
     engine.register_scanner(TextScanner())
+    engine.register_scanner(YaraScanner(rules_dir="rules"))
     return engine
 
 
@@ -50,7 +53,7 @@ def scan(
         bool, typer.Option("--json", "-j", help="Formatuj wynik jako JSON")
     ] = False,
     output_file: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--output", "-o", help="Ścieżka do pliku, w którym zostanie zapisany raport"),
     ] = None,
 ) -> None:
