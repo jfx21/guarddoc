@@ -3,6 +3,7 @@ from typing import Any
 
 import yara
 
+from guarddoc.core.i18n import Language
 from guarddoc.core.models import Severity, Threat
 from guarddoc.scanners.base import BaseScanner
 
@@ -40,7 +41,12 @@ class YaraScanner(BaseScanner):
         # Skaner YARA działa uniwersalnie na dowolnym pliku binarnym lub tekstowym
         return self.compiled_rules is not None
 
-    def scan(self, file_path: Path, mime_type: str) -> list[Threat]:
+    def scan(
+        self,
+        file_path: Path,
+        mime_type: str,
+        lang: Language = Language.PL,
+    ) -> list[Threat]:
         threats: list[Threat] = []
 
         if not self.compiled_rules:
@@ -54,7 +60,7 @@ class YaraScanner(BaseScanner):
                 rule_name = match.rule
 
                 # Pobieranie metadanych z reguły YARA (z fallbackami)
-                title = f"Wykryto dopasowanie reguły YARA: {rule_name}"
+                title = meta.get("title", f"Wykryto dopasowanie reguły YARA: {rule_name}")
                 description = meta.get("description", "Plik pasuje do zdefiniowanego wzorca YARA.")
                 raw_severity = str(meta.get("severity", "HIGH")).upper()
 
@@ -85,11 +91,22 @@ class YaraScanner(BaseScanner):
                 )
 
         except Exception as exc:  # noqa: BLE001 - celowy fallback przy błędach I/O biblioteki yara
+            err_title = (
+                "Błąd silnika YARA podczas skanowania"
+                if lang == Language.PL
+                else "YARA engine error during scan"
+            )
+            err_desc = (
+                "Nie udało się ukończyć skanowania regułami YARA."
+                if lang == Language.PL
+                else "Failed to complete scanning with YARA rules."
+            )
+
             threats.append(
                 Threat(
                     rule_id="YARA-SCAN-ERR",
-                    title="Błąd silnika YARA podczas skanowania",
-                    description="Nie udało się ukończyć skanowania regułami YARA.",
+                    title=err_title,
+                    description=err_desc,
                     severity=Severity.LOW,
                     context={"error": str(exc)},
                 )

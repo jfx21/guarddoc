@@ -1,21 +1,27 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from guarddoc.core.i18n import Language
 from guarddoc.core.models import Threat
 
 
 class BaseScanner(ABC):
-    """Abstrakcyjna klasa bazowa dla wszystkich modułów skanujących."""
+    """Klasa bazowa dla wszystkich skanerów w systemie GuardDoc."""
 
     @property
     @abstractmethod
     def name(self) -> str:
-        """Nazwa skanera używana w logach i interfejsie."""
+        """Nazwa skanera."""
 
-    @abstractmethod
     def is_supported(self, file_path: Path, mime_type: str) -> bool:
-        """Określa, czy ten skaner jest w stanie przeanalizować dany plik."""
+        """Domyślnie skaner obsługuje każdy plik (chyba że klasa pochodna nadpisze tę metodę)."""
+        return True
 
     @abstractmethod
-    def scan(self, file_path: Path, mime_type: str) -> list[Threat]:
-        """Główna logika skanująca plik. Zwraca listę obiektów Threat."""
+    def scan(
+        self,
+        file_path: Path,
+        mime_type: str,
+        lang: Language = Language.PL,
+    ) -> list[Threat]:
+        """Wykonuje skanowanie pliku i zwraca listę zagrożeń."""

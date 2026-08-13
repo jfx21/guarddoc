@@ -48,7 +48,6 @@ class ScanResult(BaseModel):
         self.threats.append(threat)
         self.is_safe = False
 
-        # Aktualizacja najwyższego poziomu ważności
         severity_weights = {
             Severity.INFO: 0,
             Severity.LOW: 1,

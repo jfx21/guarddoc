@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from guarddoc.core.i18n import Language
 from guarddoc.core.models import ScanResult, Severity
 from guarddoc.core.services import build_engine, scan_single_file
 from guarddoc.watcher import start_watcher
@@ -21,89 +22,103 @@ console = Console()
 
 @app.command()
 def scan(
-    target: Annotated[Path, typer.Argument(help="Ścieżka do pliku lub katalogu do przeskanowania")],
+    target: Annotated[
+        Path,
+        typer.Argument(help="Ścieżka do pliku lub katalogu do przeanalizowania"),
+    ],
     recursive: Annotated[
-        bool, typer.Option("--recursive", "-r", help="Skanuj katalogi rekurencyjnie")
+        bool,
+        typer.Option(
+            "-r",
+            "--recursive",
+            help="Rekurencyjne skanowanie podkatalogów",
+        ),
     ] = False,
     json_output: Annotated[
-        bool, typer.Option("--json", "-j", help="Formatuj wynik jako JSON")
+        bool,
+        typer.Option("--json", help="Wyjście w formacie JSON"),
     ] = False,
-    output_file: Annotated[
+    output: Annotated[
         Path | None,
-        typer.Option("--output", "-o", help="Ścieżka do pliku, w którym zostanie zapisany raport"),
+        typer.Option("-o", "--output", help="Zapis raportu do wskazanego pliku"),
     ] = None,
+    lang: Annotated[
+        Language,
+        typer.Option("-l", "--lang", help="Język komunikatów i raportu (pl/en)"),
+    ] = Language.PL,
 ) -> None:
-    """Skanuje plik lub katalog pod kątem zagrożeń, niebezpiecznych obiektów i podszywania się pod rozszerzenia."""
+    """Skanuje plik lub katalog pod kątem zagrożeń."""
     if not target.exists():
-        console.print(f"[bold red]Błąd:[/bold red] Ścieżka '{target}' nie istnieje.")
+        err_msg = (
+            f"Ścieżka '{target}' nie istnieje."
+            if lang == Language.PL
+            else f"Path '{target}' does not exist."
+        )
+        console.print(f"[bold red]Błąd / Error:[/bold red] {err_msg}")
         raise typer.Exit(code=1)
 
     engine = build_engine()
     results: list[ScanResult] = []
 
-    # 1. Zbiorcza lista plików do przeskanowania
     if target.is_file():
-        files_to_scan = [target]
+        results.append(scan_single_file(engine, target, lang=lang))
     elif target.is_dir():
         pattern = "**/*" if recursive else "*"
-        files_to_scan = [p for p in target.glob(pattern) if p.is_file()]
+        for path in target.glob(pattern):
+            if path.is_file():
+                results.append(scan_single_file(engine, path, lang=lang))
+
+    if json_output:
+        json_data = [r.model_dump(mode="json") for r in results]
+        json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
+
+        if output:
+            output.write_text(json_str, encoding="utf-8")
+            saved_msg = (
+                f"Raport JSON zapisany w: {output}"
+                if lang == Language.PL
+                else f"JSON report saved to: {output}"
+            )
+            console.print(f"[bold green]{saved_msg}[/bold green]")
+        else:
+            console.print_json(json_str)
     else:
-        console.print(
-            f"[bold red]Błąd:[/bold red] Ścieżka '{target}' nie jest plikiem ani katalogiem."
-        )
-        raise typer.Exit(code=1)
-
-    if not files_to_scan:
-        console.print(
-            "[bold yellow]Ostrzeżenie:[/bold yellow] Nie znaleziono żadnych plików do przeskanowania."
-        )
-        raise typer.Exit(code=0)
-
-    # 2. Wykonanie skanowania
-    for file_path in files_to_scan:
-        res = scan_single_file(engine, file_path)
-        results.append(res)
-
-    # 3. Format wyjściowy JSON
-    if json_output or output_file:
-        export_data = [res.model_dump(mode="json") for res in results]
-        json_str = json.dumps(export_data, indent=2, ensure_ascii=False)
-
-        if output_file:
-            output_file.write_text(json_str, encoding="utf-8")
-            if not json_output:
-                console.print(
-                    f"[bold green]✓ Raport z analizy został zapisany do pliku:[/bold green] {output_file}"
-                )
-
-        if json_output:
-            print(json_str)
-            return
-
-    # 4. Format wizualny w terminalu (Rich Console)
-    if len(results) == 1 and target.is_file():
-        _render_single_result(results[0])
-    else:
-        _render_batch_results(results, target)
+        if len(results) == 1:
+            _render_single_result(results[0], lang=lang)
+        else:
+            _render_batch_results(results, target, lang=lang)
 
 
-def _render_single_result(result: ScanResult) -> None:
-    info_table = Table(title="Metadane Pliku", show_header=True)
-    info_table.add_column("Właściwość", style="cyan")
-    info_table.add_column("Wartość", style="bold white")
+def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> None:
+    title_meta = "Metadane Pliku" if lang == Language.PL else "File Metadata"
+    col_prop = "Właściwość" if lang == Language.PL else "Property"
+    col_val = "Wartość" if lang == Language.PL else "Value"
 
-    info_table.add_row("Ścieżka", str(result.file_path))
-    info_table.add_row("Rozmiar", f"{result.file_size_bytes / 1024:.2f} KB")
+    info_table = Table(title=title_meta, show_header=True)
+    info_table.add_column(col_prop, style="cyan")
+    info_table.add_column(col_val, style="bold white")
+
+    label_path = "Ścieżka" if lang == Language.PL else "Path"
+    label_size = "Rozmiar" if lang == Language.PL else "Size"
+
+    info_table.add_row(label_path, str(result.file_path))
+    info_table.add_row(label_size, f"{result.file_size_bytes / 1024:.2f} KB")
     info_table.add_row("MIME Type (Magic Bytes)", result.mime_type)
 
     console.print(info_table)
     console.print()
 
     if result.is_safe:
+        status_title = "Status Bezpieczeństwa" if lang == Language.PL else "Security Status"
+        safe_msg = (
+            "✓ Brak wykrytych zagrożeń ani podejrzanych znaków/skryptów."
+            if lang == Language.PL
+            else "✓ No threats or suspicious characters/scripts detected."
+        )
         console.print(
             Panel(
-                "[bold green]✓ Brak wykrytych zagrożeń ani podejrzanych znaków/skryptów.[/bold green]",
-                title="Status Bezpieczeństwa",
+                f"[bold green]{safe_msg}[/bold green]",
+                title=status_title,
                 border_style="green",
             )
         )
@@ -116,32 +131,50 @@ def _render_single_result(result: ScanResult) -> None:
             )
 
         panel_text = "\n\n".join(threat_details)
+        panel_title = (
+            f"DETEKCJA ZAGROŻEŃ (Max Severity: {result.max_severity})"
+            if lang == Language.PL
+            else f"THREAT DETECTION (Max Severity: {result.max_severity})"
+        )
         console.print(
             Panel(
                 panel_text,
-                title=f"[bold red]⚠️ DETEKCJA ZAGROŻEŃ (Max Severity: {result.max_severity})[/bold red]",
+                title=f"[bold red]{panel_title}[/bold red]",
                 border_style="red",
             )
         )
 
 
-def _render_batch_results(results: list[ScanResult], target: Path) -> None:
-    summary_table = Table(title=f"Wyniki skanowania katalogu: {target}", show_header=True)
-    summary_table.add_column("Plik", style="bold white")
+def _render_batch_results(
+    results: list[ScanResult], target: Path, lang: Language = Language.PL
+) -> None:
+    table_title = (
+        f"Wyniki skanowania katalogu: {target}"
+        if lang == Language.PL
+        else f"Directory scan results: {target}"
+    )
+    col_file = "Plik" if lang == Language.PL else "File"
+    col_status = "Status"  # same in both langs
+    col_count = "Liczba Detekcji" if lang == Language.PL else "Detections Count"
+
+    summary_table = Table(title=table_title, show_header=True)
+    summary_table.add_column(col_file, style="bold white")
     summary_table.add_column("MIME", style="cyan")
-    summary_table.add_column("Status", style="bold")
+    summary_table.add_column(col_status, style="bold")
     summary_table.add_column("Max Severity", style="bold")
-    summary_table.add_column("Liczba Detekcji", justify="right")
+    summary_table.add_column(col_count, justify="right")
 
     unsafe_count = 0
 
     for res in results:
         if res.is_safe:
-            status_str = "[green]BEZPIECZNY[/green]"
+            status_str = (
+                "[green]BEZPIECZNY[/green]" if lang == Language.PL else "[green]SAFE[/green]"
+            )
             sev_str = "[dim]NONE[/dim]"
         else:
             unsafe_count += 1
-            status_str = "[red]ZAGROŻENIE[/red]"
+            status_str = "[red]ZAGROŻENIE[/red]" if lang == Language.PL else "[red]THREAT[/red]"
             color = "red" if res.max_severity in (Severity.CRITICAL, Severity.HIGH) else "yellow"
             sev_str = f"[{color}]{res.max_severity}[/{color}]"
 
@@ -158,13 +191,19 @@ def _render_batch_results(results: list[ScanResult], target: Path) -> None:
 
     total = len(results)
     if unsafe_count > 0:
-        console.print(
-            f"[bold red]⚠️ Wykryto podejrzane pliki: {unsafe_count} z {total} przeanalizowanych.[/bold red]"
+        msg = (
+            f"Wykryto podejrzane pliki: {unsafe_count} z {total} przeanalizowanych."
+            if lang == Language.PL
+            else f"Suspicious files detected: {unsafe_count} out of {total} analyzed."
         )
+        console.print(f"[bold red]{msg}[/bold red]")
     else:
-        console.print(
-            f"[bold green]✓ Przeanalizowano {total} plików. Brak wykrytych zagrożeń.[/bold green]"
+        msg = (
+            f"Przeanalizowano {total} plików. Brak wykrytych zagrożeń."
+            if lang == Language.PL
+            else f"Analyzed {total} files. No threats detected."
         )
+        console.print(f"[bold green]✓ {msg}[/bold green]")
 
 
 @app.command()
@@ -180,15 +219,24 @@ def watch(
             help="Automatycznie nakładaj kwarantannę (chmod 000) na wykryte groźne pliki",
         ),
     ] = True,
+    lang: Annotated[
+        Language,
+        typer.Option("-l", "--lang", help="Język komunikatów i alertów (pl/en)"),
+    ] = Language.PL,
 ) -> None:
     """Uruchamia w tle obserwatora plików (Daemon) dla wybranego katalogu."""
     target_dir = directory or (Path.home() / "Downloads")
 
     if not target_dir.exists() or not target_dir.is_dir():
-        console.print(f"[bold red]Błąd:[/bold red] Katalog '{target_dir}' nie istnieje.")
+        err_msg = (
+            f"Katalog '{target_dir}' nie istnieje."
+            if lang == Language.PL
+            else f"Directory '{target_dir}' does not exist."
+        )
+        console.print(f"[bold red]Błąd / Error:[/bold red] {err_msg}")
         raise typer.Exit(code=1)
 
-    start_watcher(target_dir, quarantine=quarantine)
+    start_watcher(target_dir, quarantine=quarantine, lang=lang)
 
 
 if __name__ == "__main__":

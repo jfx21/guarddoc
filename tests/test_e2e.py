@@ -36,6 +36,20 @@ def test_e2e_scan_spoofed_pdf_json() -> None:
     assert "MIME-SPOOF-CRITICAL" in rule_ids
 
 
+def test_e2e_scan_spoofed_pdf_json_english_i18n() -> None:
+    spoofed_file = SAMPLES_DIR / "spoofed_exec.pdf"
+
+    result = runner.invoke(app, ["scan", str(spoofed_file), "--json", "--lang", "en"])
+    assert result.exit_code == 0, f"Error stdout: {result.stdout}"
+
+    data = json.loads(result.stdout)
+    assert len(data) == 1
+    assert data[0]["is_safe"] is False
+
+    threat_title = data[0]["threats"][0]["title"]
+    assert "Executable file masquerading" in threat_title
+
+
 def test_e2e_scan_directory_recursive_json(tmp_path: Path) -> None:
     output_report = tmp_path / "e2e_report.json"
 

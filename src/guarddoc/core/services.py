@@ -3,6 +3,7 @@ from pathlib import Path
 import magic
 
 from guarddoc.core.engine import Engine
+from guarddoc.core.i18n import Language
 from guarddoc.core.models import ScanResult
 from guarddoc.scanners.mime import MimeScanner
 from guarddoc.scanners.pdf import PdfScanner
@@ -20,11 +21,11 @@ def build_engine(rules_dir: Path | str = "rules") -> Engine:
     return engine
 
 
-def scan_single_file(engine: Engine, file_path: Path) -> ScanResult:
-    """Skanuje pojedynczy plik."""
+def scan_single_file(engine: Engine, file_path: Path, lang: Language = Language.PL) -> ScanResult:
+    """Skanuje pojedynczy plik z wybranym językiem raportu."""
     try:
         detected_mime = magic.from_file(str(file_path), mime=True)
-    except Exception:  # noqa: BLE001 - fallback przy błędzie libmagic
+    except Exception:  # noqa: BLE001
         detected_mime = "unknown"
 
-    return engine.scan_file(file_path, mime_type=detected_mime)
+    return engine.scan_file(file_path, mime_type=detected_mime, lang=lang)
