@@ -4,13 +4,14 @@
 
 **GuardDoc** is a lightweight, modular CLI tool for security analysis, initial attachment verification (**Document Malware Triage**), and real-time directory watching designed for **macOS** and **Linux** systems.
 
-The tool instantly inspects downloaded documents (`.pdf`, `.txt`, `.csv`, `.json`, etc.) for hidden scripts, extension spoofing (**Extension Spoofing / Magic Bytes**), malicious automated actions, and **YARA** rule matches.
+The tool instantly inspects downloaded documents (`.pdf`, `.docx`, `.docm`, `.xlsx`, `.xlsm`, `.txt`, `.csv`, `.json`, etc.) for hidden scripts, VBA macros, extension spoofing (**Extension Spoofing / Magic Bytes**), malicious automated actions, and **YARA** rule matches.
 
 ---
 
 ## Key Features
 
-* **MIME Bytes Verification (Spoofing Detection):** Detects executable files (ELF, Mach-O, EXE, Shell scripts) masquerading as harmless text documents or PDF files.
+* **MIME Bytes Verification (Spoofing Detection):** Detects executable files (ELF, Mach-O, EXE, Shell scripts) masquerading as harmless text documents, Office files, or PDFs.
+* **Office Document Inspection (VBA & OLE):** Scans MS Office documents (`.docx`, `.docm`, `.xls`, `.xlsm`, etc.) for hidden VBA macros (`vbaProject.bin`), embedded binaries, and dangerous OLE objects.
 * **Deep PDF Analysis:** Scans raw byte structures and PDF objects for dangerous ISO specification keywords (`/JS`, `/JavaScript`, `/OpenAction`, `/AA`, `/Launch`, `/EmbeddedFiles`).
 * **Text and Unicode Analysis:** Detects **Right-To-Left Override (`U+202E`)** attacks, invisible Unicode characters (Zero-Width Spaces), Shebang headers (`#!/bin/bash`), and shell commands.
 * **YARA Integration:** Automatically compiles and applies YARA rules from the `rules/` directory to detect complex malware patterns.
@@ -41,12 +42,12 @@ GuardDoc uses a `src-layout` architecture with a separated orchestrator engine, 
                │  Engine & i18n Core    │
                └───────────┬────────────┘
                            │
-       ┌───────────────────┼───────────────────┬───────────────────┐
-       ▼                   ▼                   ▼                   ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ MimeScanner  │    │  PdfScanner  │    │ TextScanner  │    │ YaraScanner  │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
- (Magic Bytes)       (ISO PDF Spec)      (Unicode/RTLO)      (YARA Rules)
+    ┌──────────────┬───────┴───────┬──────────────┬──────────────┐
+    ▼              ▼               ▼              ▼              ▼
+┌──────────┐ ┌───────────┐   ┌───────────┐  ┌───────────┐  ┌───────────┐
+│MimeScanner││PdfScanner │   │OfficeScn  │  │TextScanner│  │YaraScanner│
+└──────────┘ └───────────┘   └───────────┘  └───────────┘  └───────────┘
+(MagicBytes) (ISO PDF Spec)  (VBA / OLE)    (Unicode/RTLO) (YARA Rules)
 ```
 
 The engine follows the **error isolation principle**: a failure or corrupted file header in one of the external parsers does not halt the application and is recorded as a potential analysis evasion attempt (*Malformed Structure*).
@@ -89,7 +90,7 @@ uv pip install -e ".[dev]"
 guarddoc scan ~/Downloads/invoice_2026.pdf
 
 # English output
-guarddoc scan ~/Downloads/invoice_2026.pdf --lang en
+guarddoc scan ~/Downloads/invoice_2026.docm --lang en
 ```
 
 ### 2. Recursive Scanning of the Entire Downloads Directory
@@ -114,36 +115,6 @@ guarddoc watch ~/Downloads --quarantine --lang en
 
 ---
 
-## JSON Output Example (English)
-
-```json
-[
-  {
-    "file_path": "/Users/user/Downloads/invoice_2026.pdf",
-    "file_name": "invoice_2026.pdf",
-    "file_size_bytes": 102400,
-    "mime_type": "text/x-shellscript",
-    "is_safe": false,
-    "max_severity": "CRITICAL",
-    "threats": [
-      {
-        "rule_id": "MIME-SPOOF-CRITICAL",
-        "title": "Executable file masquerading as a document detected!",
-        "description": "The file has extension '.pdf', but its internal structure is an executable/script (text/x-shellscript).",
-        "severity": "CRITICAL",
-        "context": {
-          "extension": ".pdf",
-          "detected_mime": "text/x-shellscript"
-        }
-      }
-    ],
-    "errors": []
-  }
-]
-```
-
----
-
 ## Testing and Code Quality
 
 The project includes a comprehensive set of unit and End-to-End (E2E) integration tests:
@@ -163,13 +134,14 @@ uv run ruff check src/ tests/
 
 **GuardDoc** to lekkie, modularne narzędzie CLI do analizy bezpieczeństwa, wstępnej weryfikacji załączników (**Document Malware Triage**) oraz stałego monitorowania katalogów w czasie rzeczywistym dla systemów **macOS** oraz **Linux**.
 
-Narzędzie służy do natychmiastowego prześwietlania pobranych dokumentów (`.pdf`, `.txt`, `.csv`, `.json` itp.) pod kątem ukrytych skryptów, oszustw w rozszerzeniach plików (**Extension Spoofing / Magic Bytes**), złośliwych akcji automatycznych oraz dopasowań reguł **YARA**.
+Narzędzie służy do natychmiastowego prześwietlania pobranych dokumentów (`.pdf`, `.docx`, `.docm`, `.xlsx`, `.xlsm`, `.txt`, `.csv`, `.json` itp.) pod kątem ukrytych skryptów, makr VBA, oszustw w rozszerzeniach plików (**Extension Spoofing / Magic Bytes**), złośliwych akcji automatycznych oraz dopasowań reguł **YARA**.
 
 ---
 
 ## Główne Cechy
 
-* **Weryfikacja MIME Bytes (Spoofing Detection):** Wykrywa pliki wykonywalne (ELF, Mach-O, EXE, skrypty Shell) podszywające się pod niegroźne dokumenty tekstowe lub pliki PDF.
+* **Weryfikacja MIME Bytes (Spoofing Detection):** Wykrywa pliki wykonywalne (ELF, Mach-O, EXE, skrypty Shell) podszywające się pod niegroźne dokumenty tekstowe, arkusze kalkulacyjne czy pliki PDF.
+* **Analiza Dokumentów Office (VBA & OLE):** Prześwietla dokumenty MS Office (`.docx`, `.docm`, `.xls`, `.xlsm` itp.) pod kątem osadzonych makr VBA (`vbaProject.bin`), osadzonych plików binarnych oraz niebezpiecznych obiektów OLE.
 * **Głęboka Analiza PDF:** Skanuje surową strukturę bajtową oraz obiekty PDF pod kątem groźnych słów kluczowych ze specyfikacji ISO (`/JS`, `/JavaScript`, `/OpenAction`, `/AA`, `/Launch`, `/EmbeddedFiles`).
 * **Analiza Tekstowa i Unicode:** Wykrywa ataki typu **Right-To-Left Override (`U+202E`)**, niewidoczne znaki Unicode (Zero-Width Spaces), nagłówki Shebang (`#!/bin/bash`) oraz komendy powłoki.
 * **Integracja z YARA:** Automatycznie kompiluje i stosuje reguły YARA z katalogu `rules/` do detekcji złożonych wzorców malware'u.
@@ -200,12 +172,12 @@ GuardDoc wykorzystuje architekturę typu `src-layout` z odseparowanym silnikiem 
                │  Engine & i18n Core    │
                └───────────┬────────────┘
                            │
-       ┌───────────────────┼───────────────────┬───────────────────┐
-       ▼                   ▼                   ▼                   ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ MimeScanner  │    │  PdfScanner  │    │ TextScanner  │    │ YaraScanner  │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
- (Magic Bytes)       (ISO PDF Spec)      (Unicode/RTLO)      (YARA Rules)
+    ┌──────────────┬───────┴───────┬──────────────┬──────────────┐
+    ▼              ▼               ▼              ▼              ▼
+┌──────────┐ ┌───────────┐   ┌───────────┐  ┌───────────┐  ┌───────────┐
+│MimeScanner││PdfScanner │   │OfficeScn  │  │TextScanner│  │YaraScanner│
+└──────────┘ └───────────┘   └───────────┘  └───────────┘  └───────────┘
+(MagicBytes) (ISO PDF Spec)  (VBA / OLE)    (Unicode/RTLO) (YARA Rules)
 ```
 
 Silnik kieruje się zasadą **izolacji błędów**: awaria lub uszkodzenie nagłówka pliku w jednym z zewnętrznych parserów nie przerywa działania aplikacji i jest rejestrowana jako potencjalna próba ominięcia analizy (*Malformed Structure*).
@@ -247,8 +219,8 @@ uv pip install -e ".[dev]"
 # Domyślnie język polski
 guarddoc scan ~/Downloads/faktura_2026.pdf
 
-# Raport w języku angielskim
-guarddoc scan ~/Downloads/faktura_2026.pdf --lang en
+# Plik pakietu Office z makrem
+guarddoc scan ~/Downloads/oferta.docm --lang pl
 ```
 
 ### 2. Rekurencyjne skanowanie całego folderu Pobrane
@@ -269,36 +241,6 @@ Uruchomienie obserwatora folderu (domyślnie `~/Downloads`) w tle z automatyczn�
 
 ```bash
 guarddoc watch ~/Downloads --quarantine --lang pl
-```
-
----
-
-## Przykład wyniku JSON
-
-```json
-[
-  {
-    "file_path": "/Users/user/Downloads/faktura_2026.pdf",
-    "file_name": "faktura_2026.pdf",
-    "file_size_bytes": 102400,
-    "mime_type": "text/x-shellscript",
-    "is_safe": false,
-    "max_severity": "CRITICAL",
-    "threats": [
-      {
-        "rule_id": "MIME-SPOOF-CRITICAL",
-        "title": "Wykryto plik wykonywalny podszywający się pod dokument!",
-        "description": "Plik ma rozszerzenie '.pdf', ale jego wewnętrzna struktura to plik wykonywalny/skrypt (text/x-shellscript).",
-        "severity": "CRITICAL",
-        "context": {
-          "extension": ".pdf",
-          "detected_mime": "text/x-shellscript"
-        }
-      }
-    ],
-    "errors": []
-  }
-]
 ```
 
 ---
