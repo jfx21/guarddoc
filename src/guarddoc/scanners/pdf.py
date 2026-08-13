@@ -1,6 +1,8 @@
-from pathlib import Path
 import re
+from pathlib import Path
+
 from pypdf import PdfReader
+
 from guarddoc.core.models import Severity, Threat
 from guarddoc.scanners.base import BaseScanner
 
@@ -104,7 +106,7 @@ class PdfScanner(BaseScanner):
                     )
                 )
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - malformed PDF może wywołać nieobsłużony błąd w pypdf
             threats.append(
                 Threat(
                     rule_id="PDF-PARSE-CORRUPTED",

@@ -11,6 +11,7 @@ from guarddoc.core.engine import Engine
 from guarddoc.core.models import Severity
 from guarddoc.scanners.mime import MimeScanner
 from guarddoc.scanners.pdf import PdfScanner
+from guarddoc.scanners.text import TextScanner
 
 app = typer.Typer(
     name="guarddoc",
@@ -33,6 +34,7 @@ def scan(
     engine = Engine()
     engine.register_scanner(MimeScanner())
     engine.register_scanner(PdfScanner())
+    engine.register_scanner(TextScanner())
 
     # Wstępne wyznaczenie MIME type
     detected_mime = magic.from_file(str(target), mime=True)
@@ -55,7 +57,7 @@ def scan(
     if result.is_safe:
         console.print(
             Panel(
-                "[bold green]✓ Brak wykrytych zagrożeń ani podejrzanych obiektów.[/bold green]",
+                "[bold green]✓ Brak wykrytych zagrożeń ani podejrzanych znaków/skryptów.[/bold green]",
                 title="Status Bezpieczeństwa",
                 border_style="green",
             )

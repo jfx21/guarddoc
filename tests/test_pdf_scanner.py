@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from guarddoc.core.models import Severity
 from guarddoc.scanners.pdf import PdfScanner
 
