@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
@@ -51,7 +52,7 @@ class Threat(BaseModel):
     title: str = Field(description="Short title of the detected issue")
     description: str = Field(description="Detailed explanation of the anomaly")
     severity: Severity = Field(default=Severity.LOW, description="Severity level of the threat")
-    context: Optional[Dict[str, Any]] = Field(
+    context: dict[str, Any] | None = Field(
         default=None, description="Additional contextual metadata"
     )
 
@@ -62,11 +63,11 @@ class ScanResult(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     file_path: Path = Field(description="Path to the analyzed file")
-    file_name: Optional[str] = Field(default=None, description="Base name of the file")
-    file_size_bytes: Optional[int] = Field(default=None, description="Size of the file in bytes")
-    mime_type: Optional[str] = Field(default=None, description="Detected MIME type")
-    threats: List[Threat] = Field(default_factory=list, description="List of detected threats")
-    errors: List[str] = Field(default_factory=list, description="Execution errors")
+    file_name: str | None = Field(default=None, description="Base name of the file")
+    file_size_bytes: int | None = Field(default=None, description="Size of the file in bytes")
+    mime_type: str | None = Field(default=None, description="Detected MIME type")
+    threats: list[Threat] = Field(default_factory=list, description="List of detected threats")
+    errors: list[str] = Field(default_factory=list, description="Execution errors")
 
     def __init__(self, **data: Any) -> None:
         super().__init__(**data)
@@ -75,8 +76,8 @@ class ScanResult(BaseModel):
         if self.file_size_bytes is None and self.file_path and self.file_path.exists():
             try:
                 self.file_size_bytes = self.file_path.stat().st_size
-            except Exception:
-                pass
+            except OSError:
+                self.file_size_bytes = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -92,7 +93,7 @@ class ScanResult(BaseModel):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def max_severity(self) -> Optional[Severity]:
+    def max_severity(self) -> Severity | None:
         """Returns the highest severity level found in the threats list."""
         if not self.threats:
             return None

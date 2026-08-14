@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 try:
     import yara
 
     YARA_AVAILABLE = True
-except (ImportError, Exception):
+except ImportError:
     yara = None  # type: ignore[assignment]
     YARA_AVAILABLE = False
 
@@ -22,9 +22,9 @@ class YaraScanner(BaseScanner):
     name: str = "YaraScanner"
     description: str = "Matches file contents against compiled YARA rule sets"
 
-    def __init__(self, rules_dir: Union[Path, str] = "rules") -> None:
+    def __init__(self, rules_dir: Path | str = "rules") -> None:
         self.rules_dir = Path(rules_dir)
-        self.compiled_rules: Optional[Any] = None
+        self.compiled_rules: Any | None = None
         if self.is_available:
             self._compile_rules()
 
@@ -38,7 +38,7 @@ class YaraScanner(BaseScanner):
         if not self.rules_dir.exists() or not self.rules_dir.is_dir() or not YARA_AVAILABLE:
             return
 
-        rule_files: Dict[str, str] = {}
+        rule_files: dict[str, str] = {}
         for idx, file_path in enumerate(self.rules_dir.glob("**/*")):
             if file_path.suffix.lower() in (".yar", ".yara"):
                 rule_files[f"namespace_{idx}"] = str(file_path)
@@ -46,7 +46,7 @@ class YaraScanner(BaseScanner):
         if rule_files:
             try:
                 self.compiled_rules = yara.compile(filepaths=rule_files)
-            except Exception:
+            except (yara.Error, OSError):
                 # In case of syntax or compilation errors, disable active rules
                 self.compiled_rules = None
 
@@ -59,9 +59,9 @@ class YaraScanner(BaseScanner):
         file_path: Path,
         mime_type: str = "unknown",
         lang: Language = Language.PL,
-    ) -> List[Threat]:
+    ) -> list[Threat]:
         """Scans the target file against compiled YARA rules."""
-        threats: List[Threat] = []
+        threats: list[Threat] = []
 
         if not self.compiled_rules:
             return threats
@@ -70,7 +70,7 @@ class YaraScanner(BaseScanner):
             matches = self.compiled_rules.match(str(file_path))
 
             for match in matches:
-                meta: Dict[str, Any] = match.meta
+                meta: dict[str, Any] = match.meta
                 rule_name = match.rule
 
                 # Extract metadata from YARA rule

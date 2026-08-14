@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import Severity
 from guarddoc.scanners.text import TextScanner

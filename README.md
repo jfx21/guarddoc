@@ -129,6 +129,8 @@ uv run pytest
 
 # Check code with Ruff linter
 uv run ruff check src/ tests/
+# Ruff fix
+uv run ruff check --fix
 ```
 
 ---
@@ -259,4 +261,7 @@ uv run pytest
 
 # Kontrola lintera Ruff
 uv run ruff check src/ tests/
+
+# Ruff fix
+uv run ruff check --fix
 ```

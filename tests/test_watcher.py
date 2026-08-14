@@ -2,6 +2,7 @@ import os
 import stat
 from pathlib import Path
 from unittest.mock import patch
+
 from watchdog.events import FileCreatedEvent
 
 from guarddoc.core.i18n import Language

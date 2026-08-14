@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
 
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import ScanResult, Severity, Threat
@@ -11,8 +10,8 @@ from guarddoc.scanners.base import BaseScanner
 class Engine:
     """Engine orchestrating scanner execution over a target file."""
 
-    def __init__(self, scanners: Optional[List[BaseScanner]] = None) -> None:
-        self.scanners: List[BaseScanner] = scanners or []
+    def __init__(self, scanners: list[BaseScanner] | None = None) -> None:
+        self.scanners: list[BaseScanner] = scanners or []
 
     def register_scanner(self, scanner: BaseScanner) -> None:
         """Registers a new scanner module in the engine."""

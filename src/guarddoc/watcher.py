@@ -5,7 +5,6 @@ import platform
 import subprocess
 import time
 from pathlib import Path
-from typing import Set
 
 from rich.console import Console
 from watchdog.events import FileCreatedEvent, FileSystemEventHandler
@@ -17,7 +16,7 @@ from guarddoc.core.services import build_engine, scan_single_file
 
 console = Console()
 
-IGNORED_EXTENSIONS: Set[str] = {".crdownload", ".download", ".tmp", ".part", ".filepart"}
+IGNORED_EXTENSIONS: set[str] = {".crdownload", ".download", ".tmp", ".part", ".filepart"}
 
 
 def send_system_notification(title: str, message: str) -> None:

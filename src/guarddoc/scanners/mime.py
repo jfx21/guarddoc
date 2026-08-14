@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import ClassVar, List, Optional, Set
+from typing import ClassVar
 
 from guarddoc.core.i18n import Language, get_text
 from guarddoc.core.models import Severity, Threat
@@ -12,7 +12,7 @@ try:
     import magic
 
     MAGIC_AVAILABLE = True
-except (ImportError, Exception):
+except (ImportError, AttributeError):
     MAGIC_AVAILABLE = False
 
 
@@ -22,7 +22,7 @@ class MimeScanner(BaseScanner):
     name: str = "MimeScanner"
     description: str = "Detects file extension spoofing and MIME type mismatches"
 
-    DANGEROUS_MIMES: ClassVar[Set[str]] = {
+    DANGEROUS_MIMES: ClassVar[set[str]] = {
         "application/x-executable",
         "application/x-mach-binary",
         "application/x-dosexec",
@@ -35,7 +35,7 @@ class MimeScanner(BaseScanner):
         "application/x-sh",
     }
 
-    DOC_EXTENSIONS: ClassVar[Set[str]] = {
+    DOC_EXTENSIONS: ClassVar[set[str]] = {
         ".pdf",
         ".txt",
         ".csv",
@@ -57,16 +57,16 @@ class MimeScanner(BaseScanner):
         try:
             magic.from_buffer(b"\x00" * 128, mime=True)
             return True
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
 
-    def get_mime_type(self, file_path: Path) -> Optional[str]:
+    def get_mime_type(self, file_path: Path) -> str | None:
         """Safely probe MIME type from file content using magic bytes."""
         if not self.is_available:
             return None
         try:
             return magic.from_file(str(file_path), mime=True)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return None
 
     def scan(
@@ -74,9 +74,9 @@ class MimeScanner(BaseScanner):
         file_path: Path,
         mime_type: str = "unknown",
         lang: Language = Language.PL,
-    ) -> List[Threat]:
+    ) -> list[Threat]:
         """Scan file for extension vs content MIME type mismatches."""
-        threats: List[Threat] = []
+        threats: list[Threat] = []
         ext = file_path.suffix.lower()
 
         if ext in self.DOC_EXTENSIONS and mime_type in self.DANGEROUS_MIMES:

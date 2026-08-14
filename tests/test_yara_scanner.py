@@ -1,9 +1,10 @@
 from pathlib import Path
+
 import pytest
 
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import Severity
-from guarddoc.scanners.yara_scanner import YaraScanner, YARA_AVAILABLE
+from guarddoc.scanners.yara_scanner import YARA_AVAILABLE, YaraScanner
 
 
 @pytest.mark.skipif(not YARA_AVAILABLE, reason="yara-python is not installed")

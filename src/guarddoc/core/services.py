@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
 
 from guarddoc.core.engine import Engine
 from guarddoc.core.i18n import Language
@@ -14,7 +13,7 @@ from guarddoc.scanners.text import TextScanner
 from guarddoc.scanners.yara_scanner import YaraScanner
 
 
-def get_default_scanners(rules_dir: Path | str = "rules") -> List[BaseScanner]:
+def get_default_scanners(rules_dir: Path | str = "rules") -> list[BaseScanner]:
     """Instantiate and return the standard suite of scanners.
 
     :param rules_dir: Directory containing compiled or raw YARA rules.
@@ -32,7 +31,7 @@ def get_default_scanners(rules_dir: Path | str = "rules") -> List[BaseScanner]:
 
 def build_engine(
     rules_dir: Path | str = "rules",
-    custom_scanners: Optional[List[BaseScanner]] = None,
+    custom_scanners: list[BaseScanner] | None = None,
 ) -> Engine:
     """Creates and configures the scan engine with registered scanners.
 
@@ -64,7 +63,7 @@ def scan_single_file(
     target_path = Path(file_path).resolve()
 
     # Safely probe MIME type via MimeScanner or fallback without crashing on missing libmagic
-    detected_mime: Optional[str] = None
+    detected_mime: str | None = None
     mime_scanner = next((s for s in engine.scanners if isinstance(s, MimeScanner)), None)
     if mime_scanner and mime_scanner.is_available:
         detected_mime = mime_scanner.get_mime_type(target_path)

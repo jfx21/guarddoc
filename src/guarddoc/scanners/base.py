@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List
 
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import Threat
@@ -41,7 +40,7 @@ class BaseScanner(ABC):
         file_path: Path,
         mime_type: str = "unknown",
         lang: Language = Language.PL,
-    ) -> List[Threat]:
+    ) -> list[Threat]:
         """Scans the target file and returns a list of detected threats.
 
         :param file_path: Resolved path to the target file.
@@ -49,4 +48,3 @@ class BaseScanner(ABC):
         :param lang: Output language for threat titles and descriptions.
         :return: List of Threat instances.
         """
-        pass
