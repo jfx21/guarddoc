@@ -1,64 +1,54 @@
 from pathlib import Path
+import pytest
 
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import Severity
-from guarddoc.scanners.yara_scanner import YaraScanner
+from guarddoc.scanners.yara_scanner import YaraScanner, YARA_AVAILABLE
 
 
-def test_yara_scanner_eicar_detection(tmp_path: Path) -> None:
-    # 1. Tworzymy tymczasowy katalog reguł YARA
+@pytest.mark.skipif(not YARA_AVAILABLE, reason="yara-python is not installed")
+def test_yara_scanner_matches_custom_rule(tmp_path: Path) -> None:
+    # 1. Stwórz tymczasowy plik z regułą YARA
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
-    rule_file = rules_dir / "eicar.yar"
+    rule_file = rules_dir / "webshell.yar"
     rule_file.write_text(
         """
-        rule EICAR_Test {
+        rule WebShell_PHP {
             meta:
-                description = "EICAR Test File Detected"
+                title = "PHP WebShell Pattern"
+                description = "Detected suspicious eval(base64_decode) construct."
                 severity = "CRITICAL"
             strings:
-                $eicar = "EICAR-STANDARD-ANTIVIRUS-TEST-FILE"
+                $eval = "eval(base64_decode("
             condition:
-                $eicar
+                $eval
         }
-        """,
-        encoding="utf-8",
-    )
-
-    # 2. Tworzymy plik testowy EICAR
-    eicar_file = tmp_path / "eicar.com"
-    eicar_file.write_text("EICAR-STANDARD-ANTIVIRUS-TEST-FILE", encoding="utf-8")
-
-    # 3. Skanujemy plik z użyciem domyślnego języka oraz z opcjonalną flagą lang
-    scanner = YaraScanner(rules_dir=rules_dir)
-    threats = scanner.scan(eicar_file, mime_type="text/plain", lang=Language.PL)
-
-    assert len(threats) == 1
-    assert threats[0].rule_id == "YARA-EICAR_TEST"
-    assert threats[0].severity == Severity.CRITICAL
-    assert threats[0].description == "EICAR Test File Detected"
-
-
-def test_yara_scanner_clean_file(tmp_path: Path) -> None:
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    rule_file = rules_dir / "sample.yar"
-    rule_file.write_text(
         """
-        rule Dummy_Rule {
-            strings:
-                $a = "BAD_PATTERN_XYZ"
-            condition:
-                $a
-        }
-        """,
-        encoding="utf-8",
     )
 
-    clean_file = tmp_path / "safe.txt"
-    clean_file.write_text("To jest czysty plik bez złych wzorców.", encoding="utf-8")
+    # 2. Stwórz plik ze złośliwym payloadem
+    malicious_file = tmp_path / "shell.php"
+    malicious_file.write_text("<?php eval(base64_decode('payload')); ?>")
 
     scanner = YaraScanner(rules_dir=rules_dir)
-    threats = scanner.scan(clean_file, mime_type="text/plain")
+    assert scanner.is_supported(malicious_file) is True
 
+    threats = scanner.scan(malicious_file, lang=Language.EN)
+    assert len(threats) == 1
+    assert threats[0].rule_id == "YARA-WEBSHELL_PHP"
+    assert threats[0].severity == Severity.CRITICAL
+    assert threats[0].title == "PHP WebShell Pattern"
+    assert threats[0].scanner_name == "YaraScanner"
+
+
+def test_yara_scanner_handles_empty_or_missing_directory(tmp_path: Path) -> None:
+    non_existent_rules = tmp_path / "missing_rules"
+    scanner = YaraScanner(rules_dir=non_existent_rules)
+
+    sample_file = tmp_path / "sample.txt"
+    sample_file.write_text("hello")
+
+    assert scanner.is_supported(sample_file) is False
+    threats = scanner.scan(sample_file, lang=Language.EN)
     assert len(threats) == 0

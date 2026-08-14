@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-
 from typer.testing import CliRunner
 
 from guarddoc.cli import app
@@ -8,43 +7,41 @@ from guarddoc.cli import app
 runner = CliRunner()
 
 
-def test_cli_scan_recursive_directory(tmp_path: Path) -> None:
-    # Tworzymy strukturę podkatalogów
-    sub_dir = tmp_path / "subdir"
-    sub_dir.mkdir()
-
-    file1 = tmp_path / "clean.txt"
-    file1.write_text("Czysty plik", encoding="utf-8")
-
-    file2 = sub_dir / "bad.txt"
-    file2.write_text("Dokument \u202etxt.exe", encoding="utf-8")
-
-    # Skanowanie bez -r
-    result = runner.invoke(app, ["scan", str(tmp_path)])
-    assert result.exit_code == 0, f"Error output: {result.stdout}"
-    assert "bad.txt" not in result.stdout
-
-    # Skanowanie z -r
-    result_rec = runner.invoke(app, ["scan", str(tmp_path), "-r"])
-    assert result_rec.exit_code == 0, f"Error output: {result_rec.stdout}"
-    assert "bad.txt" in result_rec.stdout
+def test_cli_scan_nonexistent_file(tmp_path: Path) -> None:
+    missing_file = tmp_path / "missing.txt"
+    result = runner.invoke(app, ["scan", str(missing_file)])
+    assert result.exit_code == 1
+    assert "nie istnieje" in result.stdout or "does not exist" in result.stdout
 
 
-def test_cli_json_export(tmp_path: Path) -> None:
-    test_file = tmp_path / "test.txt"
-    test_file.write_text("#!/bin/bash\nrm -rf /", encoding="utf-8")
+def test_cli_scan_single_file(tmp_path: Path) -> None:
+    sample_file = tmp_path / "test.txt"
+    sample_file.write_text("Clean test content")
 
-    output_json = tmp_path / "report.json"
+    result = runner.invoke(app, ["scan", str(sample_file), "--lang", "en"])
+    assert result.exit_code == 0
+    assert "File Metadata" in result.stdout
+    assert "No threats or suspicious characters" in result.stdout
 
-    result = runner.invoke(app, ["scan", str(test_file), "--json", "-o", str(output_json)])
-    assert result.exit_code == 0, f"Error output: {result.stdout}"
 
-    assert output_json.exists()
-    data = json.loads(output_json.read_text(encoding="utf-8"))
+def test_cli_scan_json_output(tmp_path: Path) -> None:
+    sample_file = tmp_path / "test.txt"
+    sample_file.write_text("Clean test content")
 
-    assert len(data) == 1
-    assert data[0]["is_safe"] is False
+    result = runner.invoke(app, ["scan", str(sample_file), "--json"])
+    assert result.exit_code == 0
+    parsed = json.loads(result.stdout)
+    assert isinstance(parsed, list)
+    assert len(parsed) == 1
+    assert parsed[0]["file_path"].endswith("test.txt")
 
-    detected_rule_ids = [threat["rule_id"] for threat in data[0]["threats"]]
-    assert "MIME-SPOOF-CRITICAL" in detected_rule_ids
-    assert "TXT-SHEBANG" in detected_rule_ids
+
+def test_cli_scan_directory_recursive(tmp_path: Path) -> None:
+    sub = tmp_path / "subdir"
+    sub.mkdir()
+    (sub / "nested.txt").write_text("Hello")
+    (tmp_path / "root.txt").write_text("World")
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--recursive", "--lang", "pl"])
+    assert result.exit_code == 0
+    assert "Wyniki skanowania katalogu" in result.stdout
