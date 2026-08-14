@@ -12,7 +12,8 @@ def test_cli_scan_nonexistent_file(tmp_path: Path) -> None:
     missing_file = tmp_path / "missing.txt"
     result = runner.invoke(app, ["scan", str(missing_file)])
     assert result.exit_code == 1
-    assert "nie istnieje" in result.stdout or "does not exist" in result.stdout
+    normalized_stdout = " ".join(result.stdout.split())
+    assert "nie istnieje" in normalized_stdout or "does not exist" in normalized_stdout
 
 
 def test_cli_scan_single_file(tmp_path: Path) -> None:
