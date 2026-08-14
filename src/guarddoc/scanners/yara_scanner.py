@@ -1,7 +1,15 @@
-from pathlib import Path
-from typing import Any
+from __future__ import annotations
 
-import yara
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+try:
+    import yara
+
+    YARA_AVAILABLE = True
+except (ImportError, Exception):
+    yara = None  # type: ignore[assignment]
+    YARA_AVAILABLE = False
 
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import Severity, Threat
@@ -9,19 +17,28 @@ from guarddoc.scanners.base import BaseScanner
 
 
 class YaraScanner(BaseScanner):
-    """Skaner wykorzystujący reguły YARA z podanego katalogu do detekcji złożonych wzorców malware."""
+    """Scanner leveraging YARA rules from a directory to detect complex malware patterns."""
 
-    def __init__(self, rules_dir: Path | str = "rules") -> None:
+    name: str = "YaraScanner"
+    description: str = "Matches file contents against compiled YARA rule sets"
+
+    def __init__(self, rules_dir: Union[Path, str] = "rules") -> None:
         self.rules_dir = Path(rules_dir)
-        self.compiled_rules: yara.Rules | None = None
-        self._compile_rules()
+        self.compiled_rules: Optional[Any] = None
+        if self.is_available:
+            self._compile_rules()
+
+    @property
+    def is_available(self) -> bool:
+        """Checks if yara-python dependency is available."""
+        return YARA_AVAILABLE
 
     def _compile_rules(self) -> None:
-        """Kompiluje wszystkie pliki .yar / .yara z katalogu reguł."""
-        if not self.rules_dir.exists() or not self.rules_dir.is_dir():
+        """Compiles all .yar and .yara files found in the rules directory."""
+        if not self.rules_dir.exists() or not self.rules_dir.is_dir() or not YARA_AVAILABLE:
             return
 
-        rule_files: dict[str, str] = {}
+        rule_files: Dict[str, str] = {}
         for idx, file_path in enumerate(self.rules_dir.glob("**/*")):
             if file_path.suffix.lower() in (".yar", ".yara"):
                 rule_files[f"namespace_{idx}"] = str(file_path)
@@ -29,25 +46,22 @@ class YaraScanner(BaseScanner):
         if rule_files:
             try:
                 self.compiled_rules = yara.compile(filepaths=rule_files)
-            except yara.Error:
-                # W przypadku błędu kompilacji reguł ustawiamy brak reguł
+            except Exception:
+                # In case of syntax or compilation errors, disable active rules
                 self.compiled_rules = None
 
-    @property
-    def name(self) -> str:
-        return "YaraScanner"
-
-    def is_supported(self, file_path: Path, mime_type: str) -> bool:
-        # Skaner YARA działa uniwersalnie na dowolnym pliku binarnym lub tekstowym
+    def is_supported(self, file_path: Path, mime_type: str = "unknown") -> bool:
+        """YARA rules can scan any file format if rules are successfully compiled."""
         return self.compiled_rules is not None
 
     def scan(
         self,
         file_path: Path,
-        mime_type: str,
+        mime_type: str = "unknown",
         lang: Language = Language.PL,
-    ) -> list[Threat]:
-        threats: list[Threat] = []
+    ) -> List[Threat]:
+        """Scans the target file against compiled YARA rules."""
+        threats: List[Threat] = []
 
         if not self.compiled_rules:
             return threats
@@ -56,18 +70,27 @@ class YaraScanner(BaseScanner):
             matches = self.compiled_rules.match(str(file_path))
 
             for match in matches:
-                meta: dict[str, Any] = match.meta
+                meta: Dict[str, Any] = match.meta
                 rule_name = match.rule
 
-                # Pobieranie metadanych z reguły YARA (z fallbackami)
-                title = meta.get("title", f"Wykryto dopasowanie reguły YARA: {rule_name}")
-                description = meta.get("description", "Plik pasuje do zdefiniowanego wzorca YARA.")
+                # Extract metadata from YARA rule
+                title = meta.get(
+                    "title",
+                    f"Wykryto dopasowanie reguły YARA: {rule_name}"
+                    if lang == Language.PL
+                    else f"YARA rule matched: {rule_name}",
+                )
+                description = meta.get(
+                    "description",
+                    "Plik pasuje do zdefiniowanego wzorca YARA."
+                    if lang == Language.PL
+                    else "File matches the defined YARA pattern.",
+                )
                 raw_severity = str(meta.get("severity", "HIGH")).upper()
 
-                # Mapowanie napisu na Enum Severity
                 try:
-                    severity = Severity[raw_severity]
-                except KeyError:
+                    severity = Severity.from_str(raw_severity)
+                except ValueError:
                     severity = Severity.HIGH
 
                 matched_strings = [
@@ -79,6 +102,7 @@ class YaraScanner(BaseScanner):
                 threats.append(
                     Threat(
                         rule_id=f"YARA-{rule_name.upper()}",
+                        scanner_name=self.name,
                         title=title,
                         description=str(description),
                         severity=severity,
@@ -90,7 +114,7 @@ class YaraScanner(BaseScanner):
                     )
                 )
 
-        except Exception as exc:  # noqa: BLE001 - celowy fallback przy błędach I/O biblioteki yara
+        except Exception as exc:  # noqa: BLE001
             err_title = (
                 "Błąd silnika YARA podczas skanowania"
                 if lang == Language.PL
@@ -105,6 +129,7 @@ class YaraScanner(BaseScanner):
             threats.append(
                 Threat(
                     rule_id="YARA-SCAN-ERR",
+                    scanner_name=self.name,
                     title=err_title,
                     description=err_desc,
                     severity=Severity.LOW,

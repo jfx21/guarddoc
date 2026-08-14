@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, List, Optional
 
 import typer
 from rich.console import Console
@@ -24,30 +26,30 @@ console = Console()
 def scan(
     target: Annotated[
         Path,
-        typer.Argument(help="Ścieżka do pliku lub katalogu do przeanalizowania"),
+        typer.Argument(help="Target file or directory path to analyze"),
     ],
     recursive: Annotated[
         bool,
         typer.Option(
             "-r",
             "--recursive",
-            help="Rekurencyjne skanowanie podkatalogów",
+            help="Scan directories recursively",
         ),
     ] = False,
     json_output: Annotated[
         bool,
-        typer.Option("--json", help="Wyjście w formacie JSON"),
+        typer.Option("--json", help="Format output as JSON"),
     ] = False,
     output: Annotated[
-        Path | None,
-        typer.Option("-o", "--output", help="Zapis raportu do wskazanego pliku"),
+        Optional[Path],
+        typer.Option("-o", "--output", help="Save report to specified output path"),
     ] = None,
     lang: Annotated[
         Language,
-        typer.Option("-l", "--lang", help="Język komunikatów i raportu (pl/en)"),
+        typer.Option("-l", "--lang", help="Report and message language (pl/en)"),
     ] = Language.PL,
 ) -> None:
-    """Skanuje plik lub katalog pod kątem zagrożeń."""
+    """Scans a file or directory for threats and suspicious patterns."""
     if not target.exists():
         err_msg = (
             f"Ścieżka '{target}' nie istnieje."
@@ -58,13 +60,13 @@ def scan(
         raise typer.Exit(code=1)
 
     engine = build_engine()
-    results: list[ScanResult] = []
+    results: List[ScanResult] = []
 
     if target.is_file():
         results.append(scan_single_file(engine, target, lang=lang))
     elif target.is_dir():
         pattern = "**/*" if recursive else "*"
-        for path in target.glob(pattern):
+        for path in sorted(target.glob(pattern)):
             if path.is_file():
                 results.append(scan_single_file(engine, path, lang=lang))
 
@@ -90,6 +92,7 @@ def scan(
 
 
 def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> None:
+    """Renders scan details for a single target file."""
     title_meta = "Metadane Pliku" if lang == Language.PL else "File Metadata"
     col_prop = "Właściwość" if lang == Language.PL else "Property"
     col_val = "Wartość" if lang == Language.PL else "Value"
@@ -101,14 +104,23 @@ def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> N
     label_path = "Ścieżka" if lang == Language.PL else "Path"
     label_size = "Rozmiar" if lang == Language.PL else "Size"
 
+    size_display = (
+        f"{result.file_size_bytes / 1024:.2f} KB" if result.file_size_bytes is not None else "N/A"
+    )
+
     info_table.add_row(label_path, str(result.file_path))
-    info_table.add_row(label_size, f"{result.file_size_bytes / 1024:.2f} KB")
-    info_table.add_row("MIME Type (Magic Bytes)", result.mime_type)
+    info_table.add_row(label_size, size_display)
+    info_table.add_row("MIME Type (Magic Bytes)", str(result.mime_type or "unknown"))
+    if getattr(result, "sha256", None):
+        info_table.add_row("SHA-256", str(result.sha256))
 
     console.print(info_table)
     console.print()
 
-    if result.is_safe:
+    # Support both is_safe and is_clean
+    is_safe = getattr(result, "is_safe", getattr(result, "is_clean", len(result.threats) == 0))
+
+    if is_safe:
         status_title = "Status Bezpieczeństwa" if lang == Language.PL else "Security Status"
         safe_msg = (
             "✓ Brak wykrytych zagrożeń ani podejrzanych znaków/skryptów."
@@ -126,15 +138,23 @@ def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> N
         threat_details = []
         for threat in result.threats:
             color = "red" if threat.severity in (Severity.CRITICAL, Severity.HIGH) else "yellow"
+            sev_name = (
+                threat.severity.name if hasattr(threat.severity, "name") else str(threat.severity)
+            )
             threat_details.append(
-                f"• [{color}][{threat.severity}][/{color}] [bold]{threat.title}[/bold]\n  {threat.description}"
+                f"• [{color}][{sev_name}][/{color}] [bold]{threat.title}[/bold]\n  {threat.description}"
             )
 
         panel_text = "\n\n".join(threat_details)
+        max_sev_name = (
+            result.max_severity.name
+            if hasattr(result.max_severity, "name")
+            else str(result.max_severity)
+        )
         panel_title = (
-            f"DETEKCJA ZAGROŻEŃ (Max Severity: {result.max_severity})"
+            f"DETEKCJA ZAGROŻEŃ (Max Severity: {max_sev_name})"
             if lang == Language.PL
-            else f"THREAT DETECTION (Max Severity: {result.max_severity})"
+            else f"THREAT DETECTION (Max Severity: {max_sev_name})"
         )
         console.print(
             Panel(
@@ -146,15 +166,16 @@ def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> N
 
 
 def _render_batch_results(
-    results: list[ScanResult], target: Path, lang: Language = Language.PL
+    results: List[ScanResult], target: Path, lang: Language = Language.PL
 ) -> None:
+    """Renders summary table for directory batch scanning."""
     table_title = (
         f"Wyniki skanowania katalogu: {target}"
         if lang == Language.PL
         else f"Directory scan results: {target}"
     )
     col_file = "Plik" if lang == Language.PL else "File"
-    col_status = "Status"  # same in both langs
+    col_status = "Status"
     col_count = "Liczba Detekcji" if lang == Language.PL else "Detections Count"
 
     summary_table = Table(title=table_title, show_header=True)
@@ -167,7 +188,11 @@ def _render_batch_results(
     unsafe_count = 0
 
     for res in results:
-        if res.is_safe:
+        is_safe = getattr(res, "is_safe", getattr(res, "is_clean", len(res.threats) == 0))
+        file_name = getattr(res, "file_name", res.file_path.name)
+        mime_type = str(res.mime_type or "unknown")
+
+        if is_safe:
             status_str = (
                 "[green]BEZPIECZNY[/green]" if lang == Language.PL else "[green]SAFE[/green]"
             )
@@ -176,11 +201,16 @@ def _render_batch_results(
             unsafe_count += 1
             status_str = "[red]ZAGROŻENIE[/red]" if lang == Language.PL else "[red]THREAT[/red]"
             color = "red" if res.max_severity in (Severity.CRITICAL, Severity.HIGH) else "yellow"
-            sev_str = f"[{color}]{res.max_severity}[/{color}]"
+            sev_name = (
+                res.max_severity.name
+                if hasattr(res.max_severity, "name")
+                else str(res.max_severity)
+            )
+            sev_str = f"[{color}]{sev_name}[/{color}]"
 
         summary_table.add_row(
-            res.file_name,
-            res.mime_type,
+            file_name,
+            mime_type,
             status_str,
             sev_str,
             str(len(res.threats)),
@@ -209,22 +239,22 @@ def _render_batch_results(
 @app.command()
 def watch(
     directory: Annotated[
-        Path | None,
-        typer.Argument(help="Katalog do obserwacji w tle (domyślnie ~/Downloads)"),
+        Optional[Path],
+        typer.Argument(help="Directory to watch in background (default ~/Downloads)"),
     ] = None,
     quarantine: Annotated[
         bool,
         typer.Option(
             "--quarantine/--no-quarantine",
-            help="Automatycznie nakładaj kwarantannę (chmod 000) na wykryte groźne pliki",
+            help="Automatically quarantine (chmod 000) malicious files",
         ),
     ] = True,
     lang: Annotated[
         Language,
-        typer.Option("-l", "--lang", help="Język komunikatów i alertów (pl/en)"),
+        typer.Option("-l", "--lang", help="Language for notifications and alerts (pl/en)"),
     ] = Language.PL,
 ) -> None:
-    """Uruchamia w tle obserwatora plików (Daemon) dla wybranego katalogu."""
+    """Runs a background filesystem daemon watching for incoming files."""
     target_dir = directory or (Path.home() / "Downloads")
 
     if not target_dir.exists() or not target_dir.is_dir():

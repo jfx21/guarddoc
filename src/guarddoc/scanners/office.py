@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import zipfile
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, List, Set
 
 from guarddoc.core.i18n import Language, get_text
 from guarddoc.core.models import Severity, Threat
@@ -8,9 +10,12 @@ from guarddoc.scanners.base import BaseScanner
 
 
 class OfficeScanner(BaseScanner):
-    """Skaner dokumentów Microsoft Office (.doc, .docx, .xls, .xlsm itp.) pod kątem makr VBA i obiektów OLE."""
+    """Scanner for Microsoft Office documents (.doc, .docx, .xls, .xlsm, etc.) checking for VBA macros and OLE objects."""
 
-    OFFICE_EXTENSIONS: ClassVar[set[str]] = {
+    name: str = "OfficeScanner"
+    description: str = "Detects VBA macros and embedded OLE objects in Office documents"
+
+    OFFICE_EXTENSIONS: ClassVar[Set[str]] = {
         ".doc",
         ".docx",
         ".docm",
@@ -21,11 +26,8 @@ class OfficeScanner(BaseScanner):
         ".pptm",
     }
 
-    @property
-    def name(self) -> str:
-        return "OfficeScanner"
-
-    def is_supported(self, file_path: Path, mime_type: str) -> bool:
+    def is_supported(self, file_path: Path, mime_type: str = "unknown") -> bool:
+        """Check if file extension or MIME type matches Microsoft Office documents."""
         ext = file_path.suffix.lower()
         return (
             ext in self.OFFICE_EXTENSIONS or "officedocument" in mime_type or "msword" in mime_type
@@ -34,27 +36,29 @@ class OfficeScanner(BaseScanner):
     def scan(
         self,
         file_path: Path,
-        mime_type: str,
+        mime_type: str = "unknown",
         lang: Language = Language.PL,
-    ) -> list[Threat]:
-        threats: list[Threat] = []
+    ) -> List[Threat]:
+        """Scans Office file for VBA projects and embedded OLE payloads."""
+        threats: List[Threat] = []
 
         try:
             content = file_path.read_bytes()
         except Exception:  # noqa: BLE001
             return threats
 
-        # 1. Analiza struktur OpenXML (.docx, .docm, .xlsm to pliki ZIP)
+        # 1. Analysis of OpenXML structures (.docx, .docm, .xlsm are ZIP archives)
         if zipfile.is_zipfile(file_path):
             try:
                 with zipfile.ZipFile(file_path, "r") as zip_file:
                     file_list = zip_file.namelist()
 
-                    # Sprawdzenie obecności pliku vbaProject.bin (makra w OpenXML)
+                    # Check for vbaProject.bin (macros in OpenXML)
                     if any("vbaProject.bin" in f for f in file_list):
                         threats.append(
                             Threat(
                                 rule_id="OFFICE-OPENXML-VBA",
+                                scanner_name=self.name,
                                 title=get_text("OFFICE-VBA-MACRO-TITLE", lang=lang),
                                 description=get_text("OFFICE-VBA-MACRO-DESC", lang=lang),
                                 severity=Severity.HIGH,
@@ -62,27 +66,29 @@ class OfficeScanner(BaseScanner):
                             )
                         )
 
-                    # Sprawdzenie osadzonych plików wykonywalnych / OLE w otwartym formacie
+                    # Check for embedded binaries / OLE objects in OpenXML
                     if any("embeddings/" in f for f in file_list):
                         threats.append(
                             Threat(
                                 rule_id="OFFICE-EMBEDDED-OLE",
+                                scanner_name=self.name,
                                 title=get_text("OFFICE-OLE-OBJECT-TITLE", lang=lang),
                                 description=get_text("OFFICE-OLE-OBJECT-DESC", lang=lang),
                                 severity=Severity.HIGH,
                                 context={"detected_in": "embeddings/"},
                             )
                         )
-            except Exception as exc:  # noqa: BLE001
-                # Uszkodzone archiwum ZIP traktujemy jako cichy fallback do analizy bajtowej
-                _ = exc
+            except Exception:  # noqa: BLE001
+                # Corrupted ZIP archive falls back quietly to byte signature inspection
+                pass
 
-        # 2. Analiza starszych formatów binarnych OLE2 (.doc, .xls) – wyszukiwanie sygnatur w bajtach
+        # 2. Analysis of legacy binary OLE2 formats (.doc, .xls) – searching for byte patterns
         else:
             if b"Attribut" in content and b"VB_Name" in content:
                 threats.append(
                     Threat(
                         rule_id="OFFICE-BINARY-VBA",
+                        scanner_name=self.name,
                         title=get_text("OFFICE-VBA-MACRO-TITLE", lang=lang),
                         description=get_text("OFFICE-VBA-MACRO-DESC", lang=lang),
                         severity=Severity.HIGH,

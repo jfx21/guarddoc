@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import os
 import platform
 import subprocess
 import time
 from pathlib import Path
+from typing import Set
 
 from rich.console import Console
 from watchdog.events import FileCreatedEvent, FileSystemEventHandler
@@ -14,11 +17,15 @@ from guarddoc.core.services import build_engine, scan_single_file
 
 console = Console()
 
-IGNORED_EXTENSIONS = {".crdownload", ".download", ".tmp", ".part", ".filepart"}
+IGNORED_EXTENSIONS: Set[str] = {".crdownload", ".download", ".tmp", ".part", ".filepart"}
 
 
 def send_system_notification(title: str, message: str) -> None:
-    """Wysyła natywne powiadomienie systemowe (macOS / Linux)."""
+    """Dispatches a native system notification on supported platforms (macOS / Linux).
+
+    :param title: Notification title banner.
+    :param message: Descriptive notification body.
+    """
     current_os = platform.system()
     try:
         if current_os == "Darwin":  # macOS
@@ -28,13 +35,17 @@ def send_system_notification(title: str, message: str) -> None:
             subprocess.run(["notify-send", title, message], check=False)
     except Exception as exc:  # noqa: BLE001
         console.print(
-            f"[dim red]Nie udało się wysłać powiadomienia systemowego: {exc}[/dim red]",
+            f"[dim red]Failed to dispatch system notification: {exc}[/dim red]",
             stderr=True,
         )
 
 
 def isolate_file(file_path: Path, lang: Language = Language.PL) -> None:
-    """Aplikuje kwarantannę na pliku poprzez odebranie wszystkich uprawnień odczytu i wykonania."""
+    """Applies quarantine permissions on the file by removing all read/write/execution access (0o000).
+
+    :param file_path: Target path to the suspicious file.
+    :param lang: Target language for console error messages.
+    """
     try:
         os.chmod(file_path, 0o000)
     except Exception as exc:  # noqa: BLE001
@@ -48,7 +59,7 @@ def isolate_file(file_path: Path, lang: Language = Language.PL) -> None:
 
 
 class DownloadFolderHandler(FileSystemEventHandler):
-    """Obserwator zdarzeń w katalogu pobierania."""
+    """Event handler monitoring directory events and triggering scan on newly created files."""
 
     def __init__(self, quarantine: bool = True, lang: Language = Language.PL) -> None:
         super().__init__()
@@ -57,6 +68,7 @@ class DownloadFolderHandler(FileSystemEventHandler):
         self.lang = lang
 
     def on_created(self, event: FileCreatedEvent) -> None:  # type: ignore[override]
+        """Handles filesystem creation events."""
         if event.is_directory:
             return
 
@@ -101,7 +113,12 @@ class DownloadFolderHandler(FileSystemEventHandler):
 
 
 def start_watcher(directory: Path, quarantine: bool = True, lang: Language = Language.PL) -> None:
-    """Uruchamia ciągły proces obserwujący dany katalog."""
+    """Starts a long-running watchdog observer monitoring the specified directory.
+
+    :param directory: Target path to monitor.
+    :param quarantine: Whether to automatically isolate flagged files (chmod 000).
+    :param lang: Output language for status logs and system alerts.
+    """
     event_handler = DownloadFolderHandler(quarantine=quarantine, lang=lang)
     observer = Observer()
     observer.schedule(event_handler, str(directory), recursive=False)
