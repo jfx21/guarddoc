@@ -14,39 +14,113 @@ from guarddoc.core.models import ScanResult, Severity
 from guarddoc.core.services import build_engine, scan_single_file
 from guarddoc.watcher import start_watcher
 
+# Wzbogacony opis główny oraz epilog z przykładami użycia
+HELP_DESCRIPTION = """
+[bold cyan]GuardDoc[/bold cyan] is a lightweight, local file security analyzer and malware triage CLI tool.
+It inspects document byte patterns, detects MIME spoofing, scans macros, and applies YARA rules.
+"""
+
+HELP_EPILOG = """
+[bold yellow]Common Examples:[/bold yellow]
+  • Scan a single file:
+    [green]$ guarddoc scan /path/to/invoice.pdf[/green]
+
+  • Scan a folder recursively and output JSON:
+    [green]$ guarddoc scan ~/Downloads -r --json -o report.json[/green]
+
+  • Scan in Polish:
+    [green]$ guarddoc scan invoice.pdf --lang pl[/green]
+
+  • Monitor ~/Downloads in the background with auto-quarantine:
+    [green]$ guarddoc watch ~/Downloads --quarantine[/green]
+
+[dim]For detailed options of a specific command, run:[/dim]
+  [green]$ guarddoc scan --help[/green]
+  [green]$ guarddoc watch --help[/green]
+"""
+
 app = typer.Typer(
     name="guarddoc",
-    help="GuardDoc: File Security Analysis & Malware Triage CLI",
+    help=HELP_DESCRIPTION,
+    epilog=HELP_EPILOG,
+    no_args_is_help=True,  # Wyświetla help, gdy wpiszesz samo 'guarddoc' bez parametrów
+    rich_markup_mode="rich",
     add_completion=False,
 )
 console = Console()
 
 
-@app.command()
+def version_callback(value: bool) -> None:
+    if value:
+        console.print("[bold cyan]GuardDoc[/bold cyan] version [bold green]0.1.1[/bold green]")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--version",
+            "-v",
+            help="Show the application version and exit.",
+            callback=version_callback,
+            is_eager=True,
+        ),
+    ] = None,
+) -> None:
+    """GuardDoc: Local Security Analysis & Malware Triage Tool."""
+
+
+@app.command(
+    help="Scans a file or directory for malicious byte patterns, macros, and anomalies.",
+    epilog="[dim]Example: guarddoc scan samples/ -r --json[/dim]",
+)
 def scan(
     target: Annotated[
         Path,
-        typer.Argument(help="Target file or directory path to analyze"),
+        typer.Argument(
+            help="Target file or directory path to analyze",
+            show_default=False,
+        ),
     ],
     recursive: Annotated[
         bool,
         typer.Option(
             "-r",
             "--recursive",
-            help="Scan directories recursively",
+            help="Scan directories recursively.",
         ),
     ] = False,
     json_output: Annotated[
         bool,
-        typer.Option("--json", help="Format output as JSON"),
+        typer.Option(
+            "--json",
+            help="Format scan output as structured JSON to stdout.",
+        ),
     ] = False,
     output: Annotated[
         Optional[Path],
-        typer.Option("-o", "--output", help="Save report to specified output path"),
+        typer.Option(
+            "-o",
+            "--output",
+            help="Save the scan report directly to a file (JSON format).",
+        ),
     ] = None,
+    rules_dir: Annotated[
+        Path,
+        typer.Option(
+            "--rules-dir",
+            help="Custom directory containing YARA rules (.yar/.yara).",
+        ),
+    ] = Path("rules"),
     lang: Annotated[
         Language,
-        typer.Option("-l", "--lang", help="Report and message language (pl/en)"),
+        typer.Option(
+            "-l",
+            "--lang",
+            help="Report and message language (pl/en).",
+        ),
     ] = Language.PL,
 ) -> None:
     """Scans a file or directory for threats and suspicious patterns."""
@@ -59,7 +133,7 @@ def scan(
         console.print(f"[bold red]Błąd / Error:[/bold red] {err_msg}")
         raise typer.Exit(code=1)
 
-    engine = build_engine()
+    engine = build_engine(rules_dir=rules_dir)
     results: List[ScanResult] = []
 
     if target.is_file():
@@ -70,7 +144,7 @@ def scan(
             if path.is_file():
                 results.append(scan_single_file(engine, path, lang=lang))
 
-    if json_output:
+    if json_output or output:
         json_data = [r.model_dump(mode="json") for r in results]
         json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
 
@@ -92,7 +166,6 @@ def scan(
 
 
 def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> None:
-    """Renders scan details for a single target file."""
     title_meta = "Metadane Pliku" if lang == Language.PL else "File Metadata"
     col_prop = "Właściwość" if lang == Language.PL else "Property"
     col_val = "Wartość" if lang == Language.PL else "Value"
@@ -117,7 +190,6 @@ def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> N
     console.print(info_table)
     console.print()
 
-    # Support both is_safe and is_clean
     is_safe = getattr(result, "is_safe", getattr(result, "is_clean", len(result.threats) == 0))
 
     if is_safe:
@@ -168,7 +240,6 @@ def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> N
 def _render_batch_results(
     results: List[ScanResult], target: Path, lang: Language = Language.PL
 ) -> None:
-    """Renders summary table for directory batch scanning."""
     table_title = (
         f"Wyniki skanowania katalogu: {target}"
         if lang == Language.PL
@@ -236,22 +307,25 @@ def _render_batch_results(
         console.print(f"[bold green]✓ {msg}[/bold green]")
 
 
-@app.command()
+@app.command(
+    help="Runs a background daemon watching a folder for new incoming files.",
+    epilog="[dim]Example: guarddoc watch ~/Downloads --quarantine[/dim]",
+)
 def watch(
     directory: Annotated[
         Optional[Path],
-        typer.Argument(help="Directory to watch in background (default ~/Downloads)"),
+        typer.Argument(help="Directory to watch in background (default: ~/Downloads)"),
     ] = None,
     quarantine: Annotated[
         bool,
         typer.Option(
             "--quarantine/--no-quarantine",
-            help="Automatically quarantine (chmod 000) malicious files",
+            help="Automatically quarantine (chmod 000) malicious files.",
         ),
     ] = True,
     lang: Annotated[
         Language,
-        typer.Option("-l", "--lang", help="Language for notifications and alerts (pl/en)"),
+        typer.Option("-l", "--lang", help="Language for notifications and alerts (pl/en)."),
     ] = Language.PL,
 ) -> None:
     """Runs a background filesystem daemon watching for incoming files."""
