@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Annotated, List, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -59,7 +59,7 @@ def version_callback(value: bool) -> None:
 @app.callback()
 def main(
     version: Annotated[
-        Optional[bool],
+        bool | None,
         typer.Option(
             "--version",
             "-v",
@@ -100,7 +100,7 @@ def scan(
         ),
     ] = False,
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option(
             "-o",
             "--output",
@@ -134,7 +134,7 @@ def scan(
         raise typer.Exit(code=1)
 
     engine = build_engine(rules_dir=rules_dir)
-    results: List[ScanResult] = []
+    results: list[ScanResult] = []
 
     if target.is_file():
         results.append(scan_single_file(engine, target, lang=lang))
@@ -238,7 +238,7 @@ def _render_single_result(result: ScanResult, lang: Language = Language.PL) -> N
 
 
 def _render_batch_results(
-    results: List[ScanResult], target: Path, lang: Language = Language.PL
+    results: list[ScanResult], target: Path, lang: Language = Language.PL
 ) -> None:
     table_title = (
         f"Wyniki skanowania katalogu: {target}"
@@ -313,7 +313,7 @@ def _render_batch_results(
 )
 def watch(
     directory: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Argument(help="Directory to watch in background (default: ~/Downloads)"),
     ] = None,
     quarantine: Annotated[

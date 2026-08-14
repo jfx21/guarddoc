@@ -1,5 +1,8 @@
 from pathlib import Path
+
 import pytest
+from pydantic import ValidationError
+
 from guarddoc.core.models import ScanResult, Severity, Threat
 
 
@@ -17,7 +20,7 @@ def test_threat_immutability() -> None:
         description="Description",
         severity=Severity.HIGH,
     )
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         # Should raise ValidationError / FrozenInstanceError due to frozen=True
         threat.title = "Modified"  # type: ignore
 

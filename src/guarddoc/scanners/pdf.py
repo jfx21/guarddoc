@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 from guarddoc.core.i18n import Language, get_text
 from guarddoc.core.models import Severity, Threat
@@ -25,9 +24,9 @@ class PdfScanner(BaseScanner):
         file_path: Path,
         mime_type: str = "unknown",
         lang: Language = Language.PL,
-    ) -> List[Threat]:
+    ) -> list[Threat]:
         """Scans PDF bytes for active content (/JavaScript, /JS) and automated actions (/OpenAction, /AA)."""
-        threats: List[Threat] = []
+        threats: list[Threat] = []
 
         if not self.is_supported(file_path, mime_type):
             return threats

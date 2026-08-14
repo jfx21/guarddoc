@@ -2,23 +2,23 @@ from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import MagicMock
+
 import pytest
 
 from guarddoc.core.engine import Engine
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import ScanResult, Threat
+from guarddoc.core.services import (
+    build_engine,
+    get_default_scanners,
+    scan_single_file,
+)
 from guarddoc.scanners.base import BaseScanner
 from guarddoc.scanners.mime import MimeScanner
 from guarddoc.scanners.office import OfficeScanner
 from guarddoc.scanners.pdf import PdfScanner
 from guarddoc.scanners.text import TextScanner
 from guarddoc.scanners.yara_scanner import YaraScanner
-
-from guarddoc.core.services import (
-    build_engine,
-    get_default_scanners,
-    scan_single_file,
-)
 
 
 class DummyCustomScanner(BaseScanner):

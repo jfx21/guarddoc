@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 from guarddoc.core.i18n import Language, get_text
 from guarddoc.core.models import Severity, Threat
@@ -19,9 +18,9 @@ class TextScanner(BaseScanner):
         file_path: Path,
         mime_type: str = "unknown",
         lang: Language = Language.PL,
-    ) -> List[Threat]:
+    ) -> list[Threat]:
         """Scans file content and filename for RTLO characters and shebang headers."""
-        threats: List[Threat] = []
+        threats: list[Threat] = []
 
         try:
             content = file_path.read_text(encoding="utf-8", errors="ignore")

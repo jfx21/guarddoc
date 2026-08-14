@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from pathlib import Path
-from typing import ClassVar, List, Set
+from typing import ClassVar
 
 from guarddoc.core.i18n import Language, get_text
 from guarddoc.core.models import Severity, Threat
@@ -15,7 +15,7 @@ class OfficeScanner(BaseScanner):
     name: str = "OfficeScanner"
     description: str = "Detects VBA macros and embedded OLE objects in Office documents"
 
-    OFFICE_EXTENSIONS: ClassVar[Set[str]] = {
+    OFFICE_EXTENSIONS: ClassVar[set[str]] = {
         ".doc",
         ".docx",
         ".docm",
@@ -38,9 +38,9 @@ class OfficeScanner(BaseScanner):
         file_path: Path,
         mime_type: str = "unknown",
         lang: Language = Language.PL,
-    ) -> List[Threat]:
+    ) -> list[Threat]:
         """Scans Office file for VBA projects and embedded OLE payloads."""
-        threats: List[Threat] = []
+        threats: list[Threat] = []
 
         try:
             content = file_path.read_bytes()
@@ -78,7 +78,7 @@ class OfficeScanner(BaseScanner):
                                 context={"detected_in": "embeddings/"},
                             )
                         )
-            except Exception:  # noqa: BLE001
+            except (zipfile.BadZipFile, OSError, KeyError):
                 # Corrupted ZIP archive falls back quietly to byte signature inspection
                 pass
 
