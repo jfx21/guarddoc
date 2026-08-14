@@ -86,6 +86,15 @@ uv tool install --force .
 uv tool update-shell
 ```
 
+### Update
+To update your global installation to the later version:
+```bash
+cd /path/to/guarddoc
+git pull
+uv tool install --force .
+```
+
+
 ### Local Development Mode
 ```bash
 # Sync dependencies and create venv
@@ -254,6 +263,14 @@ uv run guarddoc --help
 uv pip install -e .
 ```
 
+### Aktualizacja
+Aby zaktualizować wersje lokalnego guarddoc'a:
+```bash
+cd /path/to/guarddoc
+git pull
+uv tool install --force .
+```
+
 ---
 
 ## Użycie
@@ -286,6 +303,15 @@ Uruchomienie obserwatora folderu (domyślnie `~/Downloads`) w tle z automatyczn�
 
 ```bash
 guarddoc watch ~/Downloads --quarantine --lang pl
+```
+
+### Pomoc i inne komendy
+```bash
+# Wyświetlenie pomocy i dostępnych komend
+guarddoc --help
+
+# Sprawdzenie wersji
+guarddoc --version
 ```
 
 ---
