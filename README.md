@@ -79,8 +79,23 @@ sudo apt install libmagic1
 git clone https://github.com/jfx21/guarddoc.git
 cd guarddoc
 
-# Create environment and install the package in editable mode
-uv pip install -e ".[dev]"
+# Install globally in an isolated environment
+uv tool install --force .
+
+# Ensure ~/.local/bin is in your PATH (if not already added)
+uv tool update-shell
+```
+
+### Local Development Mode
+```bash
+# Sync dependencies and create venv
+uv sync --all-extras
+
+# Run directly via uv
+uv run guarddoc --help
+
+# Or install in editable mode inside your active environment
+uv pip install -e .
 ```
 
 ---
@@ -115,6 +130,15 @@ Monitor a directory (defaults to `~/Downloads`) in real time with automatic quar
 
 ```bash
 guarddoc watch ~/Downloads --quarantine --lang en
+```
+
+### Help & other commands
+```bash
+# Display help and available commands
+guarddoc --help
+
+# Check version
+guarddoc --version
 ```
 
 ---
@@ -211,8 +235,23 @@ sudo apt install libmagic1
 git clone https://github.com/jfx21/guarddoc.git
 cd guarddoc
 
-# Utwórz środowisko i zainstaluj pakiet w trybie deweloperskim
-uv pip install -e ".[dev]"
+# Zainstaluj globalnie w odizolowanym środowisku
+uv tool install --force .
+
+# Dodaj ~/.local/bin do zmiennej PATH (jeśli jeszcze nie dodano)
+uv tool update-shell
+```
+
+### Tryb deweloperski
+```bash
+# Synchronizacja zależności i środowiska venv
+uv sync --all-extras
+
+# Uruchamianie bezpośrednio przez uv
+uv run guarddoc --help
+
+# Lub instalacja w trybie edytowalnym w aktywnym venvie
+uv pip install -e .
 ```
 
 ---
