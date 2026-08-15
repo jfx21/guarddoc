@@ -23,6 +23,7 @@ The tool instantly inspects downloaded documents (`.pdf`, `.docx`, `.docm`, `.xl
 * **Multi-language Support (i18n):** Full support for English and Polish languages (`-l / --lang [pl|en]`) in reports, terminal UI, and desktop notifications.
 * **JSON Formatting & Recursion:** Allows scanning entire directory trees and generating structured JSON reports for integration with SIEM/SOAR systems.
 * **Archive Inspection (Hidden Binaries & Zip Slip):** Inspects `.zip`, `.tar`, `.tar.gz`, and `.tgz` archives for hidden executable files (`.exe`, `.scr`, `.sh`, `.vbs`), path traversal vulnerabilities (**Zip Slip** `../`), and compression bombs (**Zip Bomb**).
+* **Persistent Configuration (`config`):** Customize and persist your default preferences (language, custom YARA rules path) in standard XDG TOML config (`~/.config/guarddoc/config.toml`).
 
 ---
 
@@ -151,6 +152,21 @@ guarddoc --help
 guarddoc --version
 ```
 
+### Persistent Configuration
+
+Manage your default settings without passing CLI flags on every run:
+
+```bash
+# Set default language to English (or 'pl')
+guarddoc config set --lang en
+
+# Set a custom default YARA rules directory
+guarddoc config set --rules-dir /path/to/custom_rules
+
+# View current configuration and file path
+guarddoc config show
+```
+
 ---
 
 ## Testing and Code Quality
@@ -189,6 +205,7 @@ Narzędzie służy do natychmiastowego prześwietlania pobranych dokumentów (`.
 * **Obsługa Wielojęzyczności (i18n):** Pełne wsparcie dla języka polskiego i angielskiego (`-l / --lang [pl|en]`) w raportach, interfejsie konsolowym oraz powiadomieniach.
 * **Formatowanie JSON & Rekurencyjność:** Pozwala skanować całe drzewa katalogów oraz generować ustrukturyzowane raporty JSON pod kątem integracji z systemami SIEM/SOAR.
 * **Archive Inspection (Hidden Binaries & Zip Slip):** Inspects `.zip`, `.tar`, `.tar.gz`, and `.tgz` archives for hidden executable files (`.exe`, `.scr`, `.sh`, `.vbs`), path traversal vulnerabilities (**Zip Slip** `../`), and compression bombs (**Zip Bomb**).
+* **Trwała Konfiguracja (`config`):** Możliwość zapisania domyślnych preferencji (język raportów, ścieżka do reguł YARA) w pliku konfiguracyjnym TOML w standardzie XDG (`~/.config/guarddoc/config.toml`).
 
 ---
 
@@ -315,6 +332,20 @@ guarddoc --help
 # Sprawdzenie wersji
 guarddoc --version
 ```
+
+### Zarządzanie Konfiguracją
+
+Dostosuj domyślne ustawienia, aby nie wpisywać flag za każdym razem:
+
+```bash
+# Ustaw domyślny język na polski (lub 'en')
+guarddoc config set --lang pl
+
+# Ustaw domyślny katalog z regułami YARA
+guarddoc config set --rules-dir /sciezka/do/regul
+
+# Wyświetl aktualne ustawienia i ścieżkę pliku konfiguracyjnego
+guarddoc config show
 
 ---
 
