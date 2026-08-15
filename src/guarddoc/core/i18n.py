@@ -98,6 +98,31 @@ MESSAGES: dict[str, dict[Language, str]] = {
         Language.PL: "Dokument zawiera osadzony plik binarny lub zewnętrzny obiekt OLE.",
         Language.EN: "Document contains an embedded binary file or external OLE object.",
     },
+    # Archive Scanner
+    "ARCHIVE-EXECUTABLE-INSIDE-TITLE": {
+        Language.PL: "Wykryto plik wykonywalny lub skrypt wewnątrz archiwum",
+        Language.EN: "Executable file or script detected inside archive",
+    },
+    "ARCHIVE-EXECUTABLE-INSIDE-DESC": {
+        Language.PL: "Archiwum zawiera potencjalnie niebezpieczny plik wykonywalny lub skrypt.",
+        Language.EN: "Archive contains a potentially dangerous executable file or script.",
+    },
+    "ARCHIVE-ZIP-SLIP-TITLE": {
+        Language.PL: "Wykryto próbę ataku Zip Slip (niebezpieczna ścieżka pliku)",
+        Language.EN: "Zip Slip path traversal attack detected in archive",
+    },
+    "ARCHIVE-ZIP-SLIP-DESC": {
+        Language.PL: "Plik w archiwum zawiera odwołania do katalogów nadrzędnych (../), co może pozwolić na nadpisanie plików systemowych.",
+        Language.EN: "Archive entry contains parent directory references (../) which may overwrite system files upon extraction.",
+    },
+    "ARCHIVE-BOMB-TITLE": {
+        Language.PL: "Podejrzenie bomby dekompresyjnej (Zip Bomb)",
+        Language.EN: "Suspected decompression bomb (Zip Bomb)",
+    },
+    "ARCHIVE-BOMB-DESC": {
+        Language.PL: "Archiwum posiada nienaturalnie wysoki współczynnik kompresji lub zawiera zbyt dużą liczbę plików.",
+        Language.EN: "Archive has an abnormally high compression ratio or exceeds safe entry limits.",
+    },
 }
 
 

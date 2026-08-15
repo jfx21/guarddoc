@@ -57,9 +57,11 @@ def test_handler_quarantines_critical_threat(tmp_path: Path) -> None:
         ],
     )
 
-    with patch("guarddoc.watcher.scan_single_file", return_value=mock_result), patch(
-        "guarddoc.watcher.send_system_notification"
-    ) as mock_notify, patch("guarddoc.watcher.isolate_file") as mock_isolate:
+    with (
+        patch("guarddoc.watcher.scan_single_file", return_value=mock_result),
+        patch("guarddoc.watcher.send_system_notification") as mock_notify,
+        patch("guarddoc.watcher.isolate_file") as mock_isolate,
+    ):
         event = FileCreatedEvent(str(malicious_file))
         handler.on_created(event)
 

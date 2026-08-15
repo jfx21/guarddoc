@@ -22,6 +22,7 @@ The tool instantly inspects downloaded documents (`.pdf`, `.docx`, `.docm`, `.xl
 * **Real-Time Directory Watcher (Daemon):** Continuous background monitoring of incoming files (e.g., `~/Downloads`) with automatic quarantine (`chmod 000`) and native desktop notifications (macOS / Linux).
 * **Multi-language Support (i18n):** Full support for English and Polish languages (`-l / --lang [pl|en]`) in reports, terminal UI, and desktop notifications.
 * **JSON Formatting & Recursion:** Allows scanning entire directory trees and generating structured JSON reports for integration with SIEM/SOAR systems.
+* **Archive Inspection (Hidden Binaries & Zip Slip):** Inspects `.zip`, `.tar`, `.tar.gz`, and `.tgz` archives for hidden executable files (`.exe`, `.scr`, `.sh`, `.vbs`), path traversal vulnerabilities (**Zip Slip** `../`), and compression bombs (**Zip Bomb**).
 
 ---
 
@@ -177,7 +178,7 @@ Narzędzie służy do natychmiastowego prześwietlania pobranych dokumentów (`.
 
 ---
 
-## Główne Cechy
+## Główne Funkcjonalności
 
 * **Weryfikacja MIME Bytes (Spoofing Detection):** Wykrywa pliki wykonywalne (ELF, Mach-O, EXE, skrypty Shell) podszywające się pod niegroźne dokumenty tekstowe, arkusze kalkulacyjne czy pliki PDF.
 * **Analiza Dokumentów Office (VBA & OLE):** Prześwietla dokumenty MS Office (`.docx`, `.docm`, `.xls`, `.xlsm` itp.) pod kątem osadzonych makr VBA (`vbaProject.bin`), osadzonych plików binarnych oraz niebezpiecznych obiektów OLE.
@@ -187,6 +188,7 @@ Narzędzie służy do natychmiastowego prześwietlania pobranych dokumentów (`.
 * **Ochrona w Czasie Rzeczywistym (Watcher Daemon):** Ciągła obserwacja wybranego folderu (np. `~/Downloads`) w tle z opcją automatycznej kwarantanny (`chmod 000`) i natywnymi powiadomieniami systemowymi (macOS / Linux).
 * **Obsługa Wielojęzyczności (i18n):** Pełne wsparcie dla języka polskiego i angielskiego (`-l / --lang [pl|en]`) w raportach, interfejsie konsolowym oraz powiadomieniach.
 * **Formatowanie JSON & Rekurencyjność:** Pozwala skanować całe drzewa katalogów oraz generować ustrukturyzowane raporty JSON pod kątem integracji z systemami SIEM/SOAR.
+* **Archive Inspection (Hidden Binaries & Zip Slip):** Inspects `.zip`, `.tar`, `.tar.gz`, and `.tgz` archives for hidden executable files (`.exe`, `.scr`, `.sh`, `.vbs`), path traversal vulnerabilities (**Zip Slip** `../`), and compression bombs (**Zip Bomb**).
 
 ---
 
