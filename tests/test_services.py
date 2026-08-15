@@ -13,6 +13,7 @@ from guarddoc.core.services import (
     get_default_scanners,
     scan_single_file,
 )
+from guarddoc.scanners.archive import ArchiveScanner
 from guarddoc.scanners.base import BaseScanner
 from guarddoc.scanners.mime import MimeScanner
 from guarddoc.scanners.office import OfficeScanner
@@ -32,20 +33,21 @@ class DummyCustomScanner(BaseScanner):
 class TestGetDefaultScanners:
     def test_returns_all_five_standard_scanners(self, tmp_path: Path) -> None:
         scanners = get_default_scanners(rules_dir=tmp_path)
-        assert len(scanners) == 5
+        assert len(scanners) == 6
         scanner_types = [type(s) for s in scanners]
         assert MimeScanner in scanner_types
         assert PdfScanner in scanner_types
         assert TextScanner in scanner_types
         assert OfficeScanner in scanner_types
         assert YaraScanner in scanner_types
+        assert ArchiveScanner in scanner_types
 
 
 class TestBuildEngine:
     def test_build_engine_with_defaults(self, tmp_path: Path) -> None:
         engine = build_engine(rules_dir=tmp_path)
         assert isinstance(engine, Engine)
-        assert len(engine.scanners) == 5
+        assert len(engine.scanners) == 6
 
     def test_build_engine_with_custom_scanners(self) -> None:
         custom_list = [DummyCustomScanner()]

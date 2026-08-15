@@ -5,6 +5,7 @@ from pathlib import Path
 from guarddoc.core.engine import Engine
 from guarddoc.core.i18n import Language
 from guarddoc.core.models import ScanResult
+from guarddoc.scanners.archive import ArchiveScanner
 from guarddoc.scanners.base import BaseScanner
 from guarddoc.scanners.mime import MimeScanner
 from guarddoc.scanners.office import OfficeScanner
@@ -25,6 +26,7 @@ def get_default_scanners(rules_dir: Path | str = "rules") -> list[BaseScanner]:
         PdfScanner(),
         TextScanner(),
         OfficeScanner(),
+        ArchiveScanner(),
         YaraScanner(rules_dir=rules_path),
     ]
 
