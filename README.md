@@ -346,7 +346,7 @@ guarddoc config set --rules-dir /sciezka/do/regul
 
 # Wyświetl aktualne ustawienia i ścieżkę pliku konfiguracyjnego
 guarddoc config show
-
+```
 ---
 
 ## Testowanie i Jakość Kodu
