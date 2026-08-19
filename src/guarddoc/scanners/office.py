@@ -26,12 +26,11 @@ class OfficeScanner(BaseScanner):
         ".pptm",
     }
 
-    def is_supported(self, file_path: Path, mime_type: str = "unknown") -> bool:
+    def is_supported(self, file_path: Path, mime_type: str | None) -> bool:
         """Check if file extension or MIME type matches Microsoft Office documents."""
         ext = file_path.suffix.lower()
-        return (
-            ext in self.OFFICE_EXTENSIONS or "officedocument" in mime_type or "msword" in mime_type
-        )
+        mime = (mime_type or "").lower()
+        return ext in self.OFFICE_EXTENSIONS or "officedocument" in mime or "msword" in mime
 
     def scan(
         self,

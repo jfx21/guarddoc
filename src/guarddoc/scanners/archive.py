@@ -56,13 +56,11 @@ class ArchiveScanner(BaseScanner):
     def name(self) -> str:
         return "ArchiveScanner"
 
-    def is_supported(self, file_path: Path, mime_type: str) -> bool:
+    def is_supported(self, file_path: Path, mime_type: str | None) -> bool:
         ext = file_path.suffix.lower()
+        mime = (mime_type or "").lower()
         return (
-            ext in self.ARCHIVE_EXTENSIONS
-            or "zip" in mime_type
-            or "tar" in mime_type
-            or "compressed" in mime_type
+            ext in self.ARCHIVE_EXTENSIONS or "zip" in mime or "tar" in mime or "compressed" in mime
         )
 
     def scan(
