@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 from pathlib import Path
+import re
+from typing import ClassVar
 
 from guarddoc.core.i18n import Language, get_text
 from guarddoc.core.models import Severity, Threat
@@ -8,55 +8,89 @@ from guarddoc.scanners.base import BaseScanner
 
 
 class PdfScanner(BaseScanner):
-    """Scanner analyzing PDF object structure for dangerous active content and triggers."""
+    """Scanner for PDF files to detect suspicious structures, scripts, and embedded exploits."""
 
-    name: str = "PdfScanner"
-    description: str = (
-        "Detects embedded JavaScript, OpenAction triggers, and suspicious PDF objects"
-    )
+    PDF_EXTENSIONS: ClassVar[set[str]] = {".pdf"}
 
-    def is_supported(self, file_path: Path, mime_type: str = "unknown") -> bool:
-        """Checks if the file is a PDF based on extension or MIME type."""
-        return file_path.suffix.lower() == ".pdf" or "pdf" in mime_type.lower()
+    MALICIOUS_PATTERNS: ClassVar[dict[str, tuple[re.Pattern[bytes], str, Severity]]] = {
+        "PDF-JAVASCRIPT": (
+            re.compile(rb"/JavaScript\b", re.IGNORECASE),
+            "PDF-JAVASCRIPT-TITLE",
+            Severity.HIGH,
+        ),
+        "PDF-JS-INLINE": (
+            re.compile(rb"/JS\b", re.IGNORECASE),
+            "PDF-JS-INLINE-TITLE",
+            Severity.HIGH,
+        ),
+        "PDF-LAUNCH-ACTION": (
+            re.compile(rb"/Launch\b", re.IGNORECASE),
+            "PDF-LAUNCH-TITLE",
+            Severity.CRITICAL,
+        ),
+        "PDF-OPEN-ACTION": (
+            re.compile(rb"/OpenAction\b", re.IGNORECASE),
+            "PDF-OPENACTION-TITLE",
+            Severity.HIGH,
+        ),
+        "PDF-ADDITIONAL-ACTIONS": (
+            re.compile(rb"/AA\b", re.IGNORECASE),
+            "PDF-AA-TITLE",
+            Severity.HIGH,
+        ),
+    }
+
+    @property
+    def name(self) -> str:
+        return "PdfScanner"
+
+    def is_supported(self, file_path: Path, mime_type: str | None) -> bool:
+        ext = file_path.suffix.lower()
+        mime = (mime_type or "").lower()
+        return ext in self.PDF_EXTENSIONS or "pdf" in mime
 
     def scan(
         self,
         file_path: Path,
-        mime_type: str = "unknown",
+        mime_type: str | None = None,
         lang: Language = Language.PL,
     ) -> list[Threat]:
-        """Scans PDF bytes for active content (/JavaScript, /JS) and automated actions (/OpenAction, /AA)."""
         threats: list[Threat] = []
 
-        if not self.is_supported(file_path, mime_type):
-            return threats
-
         try:
-            content = file_path.read_bytes()
-        except Exception:  # noqa: BLE001
+            raw_content = file_path.read_bytes()
+        except OSError:
             return threats
 
-        # Detect embedded JavaScript elements
-        if b"/JS" in content or b"/JavaScript" in content:
-            threats.append(
-                Threat(
-                    rule_id="PDF-EMBEDDED-JS",
-                    scanner_name=self.name,
-                    title=get_text("PDF-JS-TITLE", lang=lang),
-                    description=get_text("PDF-JS-DESC", lang=lang),
-                    severity=Severity.HIGH,
-                )
-            )
+        has_js = bool(
+            re.search(rb"/JavaScript\b", raw_content, re.IGNORECASE)
+            or re.search(rb"/JS\b", raw_content, re.IGNORECASE)
+        )
 
-        # Detect automatic launch actions on document open
-        if b"/OpenAction" in content or b"/AA" in content:
+        for rule_id, (pattern, title_key, severity) in self.MALICIOUS_PATTERNS.items():
+            if pattern.search(raw_content):
+                if rule_id == "PDF-OPEN-ACTION" and b"/GoTo" in raw_content and not has_js:
+                    continue
+
+                threats.append(
+                    Threat(
+                        scanner_name=self.name,
+                        rule_id=rule_id,
+                        title=get_text(title_key, lang=lang),
+                        description=get_text(f"{rule_id}-DESC", lang=lang),
+                        severity=severity,
+                        context={"matched_rule": rule_id},
+                    )
+                )
+
+        if re.search(rb"/Type\s*/Filespec.*\.exe", raw_content, re.IGNORECASE):
             threats.append(
                 Threat(
-                    rule_id="PDF-OPEN-ACTION",
                     scanner_name=self.name,
-                    title=get_text("PDF-OPENACTION-TITLE", lang=lang),
-                    description=get_text("PDF-OPENACTION-DESC", lang=lang),
-                    severity=Severity.HIGH,
+                    rule_id="PDF-EMBEDDED-EXECUTABLE",
+                    title=get_text("PDF-EMBEDDED-EXE-TITLE", lang=lang),
+                    description=get_text("PDF-EMBEDDED-EXE-DESC", lang=lang),
+                    severity=Severity.CRITICAL,
                 )
             )
 
