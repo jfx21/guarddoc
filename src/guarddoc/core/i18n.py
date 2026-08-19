@@ -16,21 +16,53 @@ MESSAGES: dict[str, dict[Language, str]] = {
         Language.PL: "Plik ma rozszerzenie '{ext}', ale jego wewnętrzna struktura to plik wykonywalny/skrypt ({mime}).",
         Language.EN: "The file has extension '{ext}', but its internal structure is an executable/script ({mime}).",
     },
-    "PDF-JS-TITLE": {
-        Language.PL: "Wykryto skrypt JavaScript w pliku PDF",
-        Language.EN: "JavaScript script detected in PDF file",
+    "PDF-JAVASCRIPT-TITLE": {
+        Language.PL: "Wykryto kod JavaScript wewnątrz pliku PDF",
+        Language.EN: "Embedded JavaScript detected in PDF",
     },
-    "PDF-JS-DESC": {
-        Language.PL: "Plik PDF zawiera obiekty /JS lub /JavaScript pozwalające na wykonywanie kodu.",
-        Language.EN: "PDF file contains /JS or /JavaScript objects allowing code execution.",
+    "PDF-JAVASCRIPT-DESC": {
+        Language.PL: "Plik PDF zawiera osadzony kod JavaScript (/JavaScript), który może wykonywać złośliwe akcje w czytniku PDF.",
+        Language.EN: "PDF contains embedded JavaScript (/JavaScript), which may execute arbitrary actions in PDF viewers.",
+    },
+    "PDF-JS-INLINE-TITLE": {
+        Language.PL: "Wykryto skrypt /JS w dokumencie PDF",
+        Language.EN: "Inline /JS script action detected in PDF",
+    },
+    "PDF-JS-INLINE-DESC": {
+        Language.PL: "Strumień akcji PDF zawiera zdefiniowany skrypt /JS.",
+        Language.EN: "PDF action stream contains inline /JS script definition.",
+    },
+    "PDF-LAUNCH-TITLE": {
+        Language.PL: "Wykryto automatyczne uruchamianie procesu (/Launch)",
+        Language.EN: "Process execution action (/Launch) detected in PDF",
+    },
+    "PDF-LAUNCH-DESC": {
+        Language.PL: "Plik PDF próbuje uruchomić zewnętrzny program lub skrypt za pomocą instrukcji /Launch.",
+        Language.EN: "PDF attempts to execute external programs or commands via /Launch action.",
     },
     "PDF-OPENACTION-TITLE": {
-        Language.PL: "Wykryto automatyczną akcję uruchamiania (/OpenAction)",
-        Language.EN: "Automated launch action detected (/OpenAction)",
+        Language.PL: "Wykryto akcję automatyczną (/OpenAction)",
+        Language.EN: "Automatic trigger action (/OpenAction) detected",
     },
-    "PDF-OPENACTION-DESC": {
-        Language.PL: "Plik PDF wywołuje akcje natychmiast po otwarciu dokumentu.",
-        Language.EN: "PDF file triggers actions immediately upon opening.",
+    "PDF-OPEN-ACTION-DESC": {
+        Language.PL: "Dokument zawiera instrukcję /OpenAction uruchamianą natychmiast po otwarciu pliku.",
+        Language.EN: "Document contains /OpenAction trigger executed automatically on open.",
+    },
+    "PDF-AA-TITLE": {
+        Language.PL: "Wykryto dodatkowe akcje zdarzeń (/AA)",
+        Language.EN: "Additional Actions (/AA) triggers detected",
+    },
+    "PDF-ADDITIONAL-ACTIONS-DESC": {
+        Language.PL: "Dokument definiuje akcje powiązane ze zdarzeniami strony lub pól formularza (/AA).",
+        Language.EN: "Document defines additional event-based action triggers (/AA).",
+    },
+    "PDF-EMBEDDED-EXE-TITLE": {
+        Language.PL: "Osadzony plik wykonywalny wewnątrz PDF",
+        Language.EN: "Embedded executable inside PDF",
+    },
+    "PDF-EMBEDDED-EXE-DESC": {
+        Language.PL: "W strukturze PDF wykryto załączony bezpośrednio plik wykonywalny .exe.",
+        Language.EN: "Directly embedded .exe file detected in PDF structure.",
     },
     "TEXT-RTLO-TITLE": {
         Language.PL: "Wykryto atak Unicode RTLO (Right-To-Left Override)",
