@@ -93,7 +93,12 @@ To update your global installation to the later version:
 ```bash
 cd /path/to/guarddoc
 git pull
-uv tool install --force .
+uv tool install --reinstall .
+
+#if it's not working uninstall:
+uv tool uninstall guarddoc
+#and then
+uv tool install .
 ```
 
 
@@ -287,7 +292,10 @@ Aby zaktualizować wersje lokalnego guarddoc'a:
 ```bash
 cd /path/to/guarddoc
 git pull
-uv tool install --force .
+uv tool install --reinstall .
+#jeżeli nie działa to odinstaluj:
+uv tool uninstall guarddoc
+uv tool install .
 ```
 
 ---
