@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "guarddoc"
-version = "0.1.1"
-description = "CLI Malware Triage Tool for macOS & Linux"
+version = "0.1.2"
+description = "Lightweight CLI Malware Triage Tool for macOS & Linux"
 readme = "README.md"
 requires-python = ">=3.11, <3.15"
 authors = [
