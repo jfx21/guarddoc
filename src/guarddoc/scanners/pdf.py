@@ -1,5 +1,5 @@
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import ClassVar
 
 from guarddoc.core.i18n import Language, get_text
